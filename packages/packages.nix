@@ -22,7 +22,7 @@
     git-crypt
     nodejs
     python3
-    cargo
+    rustup
     cmake
     ninja
     clang

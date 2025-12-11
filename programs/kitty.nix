@@ -32,6 +32,8 @@
       listen_on = "unix:/tmp/kitty";
       shell_integration = "enabled";
 
+      hide_window_decorations = "yes";
+
       include = "current-theme.conf";
     };
 

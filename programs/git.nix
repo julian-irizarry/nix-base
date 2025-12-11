@@ -3,10 +3,9 @@
 {
   programs.git = {
     enable = true;
-    userName = "Julian Irizarry";
-    userEmail = "julianirizarry@live.com";
-
-    extraConfig = {
+    settings = {
+      user.name = "Julian Irizarry";
+      user.email = "julianirizarry@live.com";
       init.defaultBranch = "main";
       pull.ff = "only";
       merge.tool = "vimdiff";

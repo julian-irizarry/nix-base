@@ -10,7 +10,7 @@
     };
 
     dotfiles = {
-      url = "github:julian-irizarry/dotfiles?ref=dev";
+      url = "github:julian-irizarry/dotfiles?ref=fzf-migration";
       flake = false;
     };
   };

@@ -1,6 +1,11 @@
 { pkgs, dotfiles, ... }:
 
 {
+  home.sessionPath = [
+    "$HOME/.npm-global/bin"
+    "$HOME/.local/bin"
+  ];
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
@@ -24,11 +29,10 @@
 
     sessionVariables = {
       EDITOR = "nvim";
-      TERM = "xterm-256color";
       ZSH = "$HOME/.oh-my-zsh";
     };
 
-    initContent = ''
+    initExtra = ''
       [ -f "$HOME/.zshenv" ] && source "$HOME/.zshenv"
 
       # oh-my-posh prompt

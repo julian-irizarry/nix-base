@@ -76,7 +76,7 @@
       };
       codeRoots = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ "$HOME/sources" ];
+        default = [ "~/sources" ];
         description = ''
           Roots the sessionizer extension scans for project directories.
           Rendered to ~/.config/vicinae/sessionizer-roots.json. Each entry

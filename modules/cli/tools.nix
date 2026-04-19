@@ -54,5 +54,7 @@
     pyright
     rust-analyzer
     stylua
+    # Treesitter main-branch compiles parsers locally; needs the CLI.
+    tree-sitter
   ];
 }

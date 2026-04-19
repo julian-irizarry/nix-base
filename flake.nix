@@ -18,6 +18,12 @@
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # nixGL wraps GPU apps so libGL/libEGL can find system drivers on non-NixOS.
+    # Consumed via targets.genericLinux.nixGL; remove when migrating to NixOS.
+    nixGL = {
+      url = "github:nix-community/nixGL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -27,10 +33,18 @@
       home-manager,
       treefmt-nix,
       vicinae,
+      nixGL,
       ...
     }:
     let
-      mkHome = import ./lib/mkHome.nix { inherit nixpkgs home-manager vicinae; };
+      mkHome = import ./lib/mkHome.nix {
+        inherit
+          nixpkgs
+          home-manager
+          vicinae
+          nixGL
+          ;
+      };
 
       supportedSystems = [
         "x86_64-linux"

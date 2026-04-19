@@ -2,6 +2,7 @@
   nixpkgs,
   home-manager,
   vicinae,
+  nixGL,
 }:
 
 {
@@ -20,6 +21,7 @@ let
       modules = [
         ../modules
         vicinae.homeManagerModules.default
+        { targets.genericLinux.nixGL.packages = nixGL.packages; }
       ]
       ++ modules;
     };

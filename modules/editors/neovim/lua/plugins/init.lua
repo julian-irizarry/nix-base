@@ -142,15 +142,7 @@ return {
     lazy = false, -- Already lazy loaded by filetype
     config = function()
       vim.g.rustaceanvim = {
-        -- LSP configuration
         server = {
-          on_attach = function(client, bufnr)
-            -- Get the default on_attach from nvchad
-            local on_attach = require("nvchad.configs.lspconfig").on_attach
-            if on_attach then
-              on_attach(client, bufnr)
-            end
-          end,
           default_settings = {
             ["rust-analyzer"] = {
               cargo = {
@@ -160,7 +152,6 @@ return {
                   enable = true,
                 },
               },
-              -- Add clippy lints for Rust.
               checkOnSave = true,
               procMacro = {
                 enable = true,

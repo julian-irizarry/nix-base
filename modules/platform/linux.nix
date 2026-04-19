@@ -1,10 +1,16 @@
-{ lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-  # environment.d is read by systemd --user before the graphical session
-  # launches; home.sessionVariables only reaches child shells, so .desktop
-  # entries from nix profiles would otherwise be invisible to the DE.
-  home.file.".config/environment.d/10-nix.conf".text = ''
-    XDG_DATA_DIRS=''${XDG_DATA_DIRS}:''${HOME}/.nix-profile/share:/nix/var/nix/profiles/default/share
-  '';
+  # TODO: drop when migrating to NixOS — it handles XDG wiring natively.
+  # On non-NixOS distros the graphical session doesn't know about nix
+  # profiles, so .desktop entries are invisible to GNOME without this.
+  xdg.systemDirs.data = [
+    "${config.home.profileDirectory}/share"
+    "/nix/var/nix/profiles/default/share"
+  ];
 }

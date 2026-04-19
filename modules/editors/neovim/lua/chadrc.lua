@@ -48,7 +48,6 @@ M.ui = {
       "git",
       "%=",
       "%=",
-      "noice_cmd",
       "noice_mode",
       "noice_search",
       "diagnostics",

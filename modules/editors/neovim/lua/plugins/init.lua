@@ -251,6 +251,12 @@ return {
         view_history = "messages",
         view_search = "virtualtext",
       },
+      routes = {
+        {
+          filter = { event = "msg_show", kind = "", find = "written" },
+          view = "notify",
+        },
+      },
       popupmenu = {
         enabled = true,
         backend = "nui",

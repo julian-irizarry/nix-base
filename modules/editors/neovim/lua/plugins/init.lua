@@ -62,41 +62,20 @@ return {
 
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = {
-      ensure_installed = {
-        "vim",
-        "lua",
-        "vimdoc",
-        "c",
-        "python",
-        "cmake",
-        "cpp",
-        "rust",
-      },
-
-      highlightghlight = {
-        enable = true, -- Enable syntax highlighting
-      },
-
-      incremental_selection = {
-        enable = true,
-        keymaps = {
-          init_selection = "<C-space>",
-          node_incremental = "<C-space>",
-          scope_incremental = false,
-          node_decremental = "<bs>",
-        },
-      },
-    },
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
-    },
+    branch = "main",
+    lazy = false,
+    build = ":TSUpdate",
+    config = function()
+      require("configs.treesitter").setup_core()
+    end,
   },
 
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
+    branch = "main",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
-      require "configs.nvim-treesitter-textobjects"
+      require("configs.treesitter").setup_textobjects()
     end,
   },
 

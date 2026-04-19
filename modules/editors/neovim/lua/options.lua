@@ -46,8 +46,8 @@ vim.opt.autoindent = true
 
 -- Use Treesitter for folding
 vim.opt.foldmethod = "expr"
-vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
-vim.opt.foldtext = "nvim_treesitter#foldtext()"
+vim.opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+vim.opt.foldtext = ""
 vim.opt.foldenable = false -- Start with all folds open
 vim.opt.foldlevel = 20
 

@@ -58,5 +58,29 @@
         programs.ssh.matchBlocks.
       '';
     };
+
+    font = {
+      nerdFamily = lib.mkOption {
+        type = lib.types.str;
+        default = "fira-code";
+        description = ''
+          Nerd Font family, matching the attribute name under
+          pkgs.nerd-fonts (e.g. "fira-code", "jetbrains-mono", "hack").
+        '';
+      };
+      name = lib.mkOption {
+        type = lib.types.str;
+        default = "FiraCode Nerd Font";
+        description = ''
+          Rendered font family name used by terminals and editors.
+          Must match the font's actual family name after install.
+        '';
+      };
+      size = lib.mkOption {
+        type = lib.types.int;
+        default = 13;
+        description = "Default editor/terminal font size in points.";
+      };
+    };
   };
 }

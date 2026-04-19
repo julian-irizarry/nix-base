@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 
 {
   programs.kitty = {
@@ -10,6 +10,8 @@
     };
 
     settings = {
+      shell = "${pkgs.zsh}/bin/zsh --login";
+
       hide_window_decorations = "yes";
       confirm_os_window_close = 0;
       window_padding_width = 0;
@@ -21,6 +23,9 @@
       cursor_trail_decay = "0.1 0.3";
 
       inactive_text_alpha = "0.6";
+      active_border_color = "none";
+      inactive_border_color = "none";
+      window_border_width = "0";
 
       tab_bar_edge = "bottom";
       tab_bar_style = "custom";
@@ -43,6 +48,11 @@
 
     keybindings = {
       "shift+enter" = "send_text all \\x1b[13;2u";
+
+      "ctrl+h" = "neighboring_window left";
+      "ctrl+j" = "neighboring_window down";
+      "ctrl+k" = "neighboring_window up";
+      "ctrl+l" = "neighboring_window right";
 
       "ctrl+shift+l" = "next_tab";
       "ctrl+shift+h" = "previous_tab";

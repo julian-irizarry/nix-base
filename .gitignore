@@ -26,3 +26,6 @@ Thumbs.db
 # home-manager local state (never checked in)
 result
 result-*
+
+# Claude
+docs/

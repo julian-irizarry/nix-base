@@ -5,13 +5,12 @@
       "alignment": "left",
       "newline": false,
       "segments": [
-		{
-		  "type": "nix-shell",
-		  "style": "powerline",
-		  "foreground": "#FFFFFF",
-		  "background": "transparent",
-		  "template": "(nix)"
-		},
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "#FFFFFF",
+          "template": "{{ if .Env.IN_NIX_SHELL }}(nix) {{ end }}"
+        },
         {
           "type": "python",
           "style": "plain",
@@ -43,13 +42,12 @@
           "template": "  {{ .Path }} ",
           "type": "path"
         },
-		{
-		  "type": "nix-shell",
-		  "style": "powerline",
-		  "foreground": "#003fff",
-		  "background": "transparent",
-		  "template": "[nix:nix-shell-env]"
-		},
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "#003fff",
+          "template": "{{ if .Env.IN_NIX_SHELL }}[nix:{{ .Env.IN_NIX_SHELL }}] {{ end }}"
+        },
         {
           "foreground": "#A9FFB4",
           "foreground_templates": [

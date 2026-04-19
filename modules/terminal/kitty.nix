@@ -24,8 +24,6 @@
       cursor_trail_decay = "0.1 0.3";
 
       inactive_text_alpha = "0.6";
-      active_border_color = "none";
-      inactive_border_color = "none";
       window_border_width = "0";
 
       tab_bar_edge = "bottom";

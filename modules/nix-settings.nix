@@ -10,7 +10,8 @@ let
   experimentalFeatures = [
     "nix-command"
     "flakes"
-  ] ++ cfg.extraExperimentalFeatures;
+  ]
+  ++ cfg.extraExperimentalFeatures;
 
   renderValue =
     v:

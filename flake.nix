@@ -11,6 +11,13 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Vicinae ships its own home-manager module via homeManagerModules.default.
+    # We pass pkgs.vicinae as the package (skips upstream's cachix), so we can
+    # let inputs.nixpkgs.follows pin matching so the module version lines up.
+    vicinae = {
+      url = "github:vicinaehq/vicinae";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -19,10 +26,11 @@
       nixpkgs,
       home-manager,
       treefmt-nix,
+      vicinae,
       ...
     }:
     let
-      mkHome = import ./lib/mkHome.nix { inherit nixpkgs home-manager; };
+      mkHome = import ./lib/mkHome.nix { inherit nixpkgs home-manager vicinae; };
 
       supportedSystems = [
         "x86_64-linux"

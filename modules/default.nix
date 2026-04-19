@@ -3,6 +3,7 @@
     ./options.nix
     ./home-defaults.nix
     ./cli
+    ./desktop
     ./editors
     ./identity
     ./network

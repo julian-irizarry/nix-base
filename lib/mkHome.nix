@@ -1,4 +1,8 @@
-{ nixpkgs, home-manager }:
+{
+  nixpkgs,
+  home-manager,
+  vicinae,
+}:
 
 {
   modules ? [ ],
@@ -13,7 +17,11 @@ let
     system:
     home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.${system};
-      modules = [ ../modules ] ++ modules;
+      modules = [
+        ../modules
+        vicinae.homeManagerModules.default
+      ]
+      ++ modules;
     };
 in
 nixpkgs.lib.genAttrs systems forSystem

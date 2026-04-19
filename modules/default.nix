@@ -8,6 +8,7 @@
     ./fonts.nix
     ./git.nix
     ./ssh.nix
+    ./nix-settings.nix
     ./dev/cli-tools.nix
     ./dev/vscode.nix
     ./shell/zsh.nix

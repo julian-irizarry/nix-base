@@ -107,7 +107,7 @@
   };
 
   xdg.configFile = {
-    "kitty/current-theme.conf".source = ./kitty-theme.conf;
-    "kitty/tab_bar.py".source = ./kitty-tab_bar.py;
+    "kitty/current-theme.conf".source = ./kitty/current-theme.conf;
+    "kitty/tab_bar.py".source = ./kitty/tab_bar.py;
   };
 }

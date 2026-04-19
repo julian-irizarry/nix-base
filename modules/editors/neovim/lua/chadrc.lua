@@ -30,31 +30,44 @@ end
 
 local function search_indicator()
   if vim.v.hlsearch == 0 then
-    return ''
+    return ""
   end
 
-  local result = vim.fn.searchcount({ recompute = 1 })
+  local result = vim.fn.searchcount { recompute = 1 }
   if vim.tbl_isempty(result) then
-    return ''
+    return ""
   end
 
   if result.incomplete == 1 then
-    return string.format(' /%s [?/??]', vim.fn.getreg('/'))
+    return string.format(" /%s [?/??]", vim.fn.getreg "/")
   elseif result.incomplete == 2 then
     if result.total > result.maxcount and result.current > result.maxcount then
-      return string.format(' /%s [>%d/>%d]', vim.fn.getreg('/'), result.current, result.total)
+      return string.format(" /%s [>%d/>%d]", vim.fn.getreg "/", result.current, result.total)
     elseif result.total > result.maxcount then
-      return string.format(' /%s [%d/>%d]', vim.fn.getreg('/'), result.current, result.total)
+      return string.format(" /%s [%d/>%d]", vim.fn.getreg "/", result.current, result.total)
     end
   end
-  return string.format(' %d/%d ', result.current, result.total)
+  return string.format(" %d/%d ", result.current, result.total)
 end
 
 M.ui = {
   statusline = {
     theme = "minimal",
     separator_style = "block",
-    order = { "mode", "cwd", "file", "git", "%=", "lsp_msg", "%=", "search_indicator", "diagnostics", "lsp", "neocodeium", "line_percent" },
+    order = {
+      "mode",
+      "cwd",
+      "file",
+      "git",
+      "%=",
+      "lsp_msg",
+      "%=",
+      "search_indicator",
+      "diagnostics",
+      "lsp",
+      "neocodeium",
+      "line_percent",
+    },
     modules = {
       line_percent = function()
         return gen_block(" ", "%p%% ", "%#St_Pos_sep#", "%#St_Pos_bg#", "%#St_Pos_txt#")
@@ -102,4 +115,3 @@ M.ui = {
 }
 
 return M
-

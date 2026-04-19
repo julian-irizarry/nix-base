@@ -1,7 +1,7 @@
 -- Load defaults i.e. lua_lsp
 require("nvchad.configs.lspconfig").defaults()
 
-local servers = {"nixd", "pyright", "clangd", "bash_language_server", "gopls"}
+local servers = { "nixd", "pyright", "clangd", "bash_language_server", "gopls" }
 vim.lsp.enable(servers)
 
 vim.lsp.config("nixd", {

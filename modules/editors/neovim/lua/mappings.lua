@@ -3,10 +3,10 @@ require "nvchad.mappings"
 local map = vim.keymap.set
 
 -- Smart splits navigation (seamless nvim/wezterm pane navigation)
-map('n', '<C-h>', require('smart-splits').move_cursor_left, { desc = 'Move to left split/pane' })
-map('n', '<C-j>', require('smart-splits').move_cursor_down, { desc = 'Move to below split/pane' })
-map('n', '<C-k>', require('smart-splits').move_cursor_up, { desc = 'Move to above split/pane' })
-map('n', '<C-l>', require('smart-splits').move_cursor_right, { desc = 'Move to right split/pane' })
+map("n", "<C-h>", require("smart-splits").move_cursor_left, { desc = "Move to left split/pane" })
+map("n", "<C-j>", require("smart-splits").move_cursor_down, { desc = "Move to below split/pane" })
+map("n", "<C-k>", require("smart-splits").move_cursor_up, { desc = "Move to above split/pane" })
+map("n", "<C-l>", require("smart-splits").move_cursor_right, { desc = "Move to right split/pane" })
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")
@@ -53,8 +53,8 @@ map("n", "<leader>fp", function()
     cwd = vim.fn.stdpath "data" .. "/lazy",
   }
 end, { desc = "FzfLua Find Plugin Source" })
-local fd_dir_cmd = vim.fn.executable("fd") == 1 and "fd --type d"
-  or vim.fn.executable("fdfind") == 1 and "fdfind --type d"
+local fd_dir_cmd = vim.fn.executable "fd" == 1 and "fd --type d"
+  or vim.fn.executable "fdfind" == 1 and "fdfind --type d"
   or "find . -type d -not -path '*/\\.*'"
 
 local function live_grep_in(opts)
@@ -62,19 +62,22 @@ local function live_grep_in(opts)
   fzf.live_grep(vim.tbl_extend("force", {
     cwd_header = true,
     actions = {
-      ["ctrl-d"] = { fn = function(_, o)
-        local query = o.last_query or ""
-        fzf.fzf_exec(fd_dir_cmd, {
-          prompt = "Switch dir> ",
-          actions = {
-            ["default"] = function(selected)
-              if selected and #selected > 0 then
-                live_grep_in { cwd = vim.fn.fnamemodify(selected[1], ":p"), query = query }
-              end
-            end,
-          },
-        })
-      end, desc = "change-directory" },
+      ["ctrl-d"] = {
+        fn = function(_, o)
+          local query = o.last_query or ""
+          fzf.fzf_exec(fd_dir_cmd, {
+            prompt = "Switch dir> ",
+            actions = {
+              ["default"] = function(selected)
+                if selected and #selected > 0 then
+                  live_grep_in { cwd = vim.fn.fnamemodify(selected[1], ":p"), query = query }
+                end
+              end,
+            },
+          })
+        end,
+        desc = "change-directory",
+      },
     },
   }, opts))
 end
@@ -110,7 +113,7 @@ map(
   { noremap = true, silent = true, desc = "Lspsaga Trigger [C]ode [A]ction (Visual)" }
 )
 
-map("n", "<leader>gs", fzf.git_status, { desc = "FzfLua Search Git Status"})
+map("n", "<leader>gs", fzf.git_status, { desc = "FzfLua Search Git Status" })
 
 -- Rename
 map("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", { desc = "Lspsaga [R]e[n]ame Symbol" })
@@ -144,7 +147,7 @@ map("n", "<leader><tab>", ":bnext<CR>", { desc = "Cycle through open buffers" })
 map("n", "<leader>c", ":.lua<CR>", { desc = "Execute selected line" })
 map("v", "<leader>c", ":lua<CR>", { desc = "Execute selected lines" })
 
-map('n', '<C-q>', ':q<CR>', {desc = "Close neovim"} )
+map("n", "<C-q>", ":q<CR>", { desc = "Close neovim" })
 
 -- Gitsigns hunk navigation
 map("n", "[c", "<cmd>Gitsigns next_hunk<CR>", { desc = "Next hunk" })

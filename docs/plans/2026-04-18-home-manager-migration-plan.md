@@ -50,6 +50,7 @@ If the working tree is not clean, stop and ask.
 **Goal:** Start from an empty tree. The old flake had useful reference patterns we've already extracted into the design doc. Keep config files and docs.
 
 **Files:**
+
 - Delete: `flake.nix`, `flake.lock`, `home.nix`, `programs/` (directory), `packages/` (directory)
 - Keep: `.gitignore`, `.pre-commit-config.yaml`, `docs/`, `.git/`
 
@@ -95,6 +96,7 @@ modules are removed in one commit so the new structure lands clean."
 **Goal:** Minimal README so GitHub landing page makes sense. Extend .gitignore with HM state paths.
 
 **Files:**
+
 - Modify: `.gitignore`
 - Create: `README.md`
 
@@ -112,7 +114,7 @@ result-*
 
 **Step 2: Write `README.md`**
 
-```markdown
+````markdown
 # home-manager
 
 Base home-manager flake. Cross-platform (Linux + macOS).
@@ -122,6 +124,7 @@ Base home-manager flake. Cross-platform (Linux + macOS).
 ```bash
 nix run home-manager/master -- switch --flake .#linux   # or .#mac
 ```
+````
 
 ## Structure
 
@@ -134,14 +137,15 @@ nix run home-manager/master -- switch --flake .#linux   # or .#mac
 - `docs/plans/` — design and implementation plans
 
 Work-specific overlays live in a separate private flake that imports this one.
-```
+
+````
 
 **Step 3: Verify + commit**
 
 ```bash
 git add -A
 git commit -m "chore: add README and extend gitignore for home-manager state"
-```
+````
 
 ---
 
@@ -150,6 +154,7 @@ git commit -m "chore: add README and extend gitignore for home-manager state"
 **Goal:** Minimum evaluable flake. `nix flake check` passes. `home-manager build --flake .#linux` succeeds (produces an empty-but-valid HM generation).
 
 **Files:**
+
 - Create: `flake.nix`
 - Create: `lib/mkHome.nix`
 - Create: `modules/default.nix` (placeholder — imports nothing yet)
@@ -279,6 +284,7 @@ both succeed."
 **Goal:** Lock in the parameterization contract. Expose `my.git.*`, `my.nix.extraNixPath`, `my.zsh.extraInitFragments`, `my.ssh.extraHosts`.
 
 **Files:**
+
 - Create: `modules/options.nix`
 - Modify: `modules/default.nix` (import options)
 - Modify: `lib/mkHome.nix` (supply personal defaults for `my.*`)
@@ -433,6 +439,7 @@ If you deviate from the pattern, say so explicitly.
 ### Task 5: `modules/git.nix`
 
 **Files:**
+
 - Create: `modules/git.nix`
 - Modify: `modules/default.nix`
 
@@ -502,6 +509,7 @@ git commit -m "feat: add git module reading from my.git.* options"
 **Goal:** Native modules for fzf, zoxide, bat, eza, direnv, gh, less, man, readline, uv. Plus `home.packages` for tools without a home-manager module (ripgrep, fd, jq, yq, tree, wget, curl, unzip, zip, xclip, btop, gnupg, gnumake, pkg-config, tmux — wait, tmux gets its own module; drop from here).
 
 **Files:**
+
 - Create: `modules/dev/cli-tools.nix`
 - Modify: `modules/default.nix`
 
@@ -583,6 +591,7 @@ git commit -m "feat: add cli-tools module with native home-manager programs"
 **Goal:** Port the old zsh module; replace `initExtra` with `initContent`; use `my.zsh.extraInitFragments` for the escape hatch.
 
 **Files:**
+
 - Create: `modules/shell/zsh.nix`
 - Modify: `modules/default.nix`
 
@@ -711,6 +720,7 @@ git commit -m "feat: add zsh module with my.zsh.extraInitFragments hook"
 **Goal:** Bring the prompt config inside the flake. No dependency on the external dotfiles repo.
 
 **Files:**
+
 - Copy: `~/Downloads/repos/dotfiles/.config/oh-my-posh/omp.json` → `modules/shell/omp.json`
 - Create: `modules/shell/prompt.nix`
 - Modify: `modules/default.nix`
@@ -767,6 +777,7 @@ git commit -m "feat: add oh-my-posh module with absorbed omp.json"
 **Goal:** `programs.ssh.matchBlocks` from `my.ssh.extraHosts`. 1Password IdentityAgent is configured in the per-platform modules (Task 14).
 
 **Files:**
+
 - Create: `modules/ssh.nix`
 - Modify: `modules/default.nix`
 
@@ -814,6 +825,7 @@ git commit -m "feat: add ssh module reading from my.ssh.extraHosts"
 **Goal:** `NIX_PATH` from `my.nix.extraNixPath`.
 
 **Files:**
+
 - Create: `modules/nix-settings.nix`
 - Modify: `modules/default.nix`
 
@@ -861,6 +873,7 @@ git commit -m "feat: add nix-settings module with configurable NIX_PATH"
 **Goal:** Minimal tmux config via native module. The existing `~/.config/tmux/tmux.conf.bak` suggests tmux isn't actively configured; provide sensible defaults.
 
 **Files:**
+
 - Create: `modules/dev/tmux.nix`
 - Modify: `modules/default.nix`
 
@@ -939,6 +952,7 @@ git commit -m "feat: add tmux module with sensible defaults and plugins"
 **Goal:** Port the old kitty module; absorb `current-theme.conf` into the flake.
 
 **Files:**
+
 - Copy: `~/Downloads/repos/dotfiles/.config/kitty/current-theme.conf` → `modules/dev/kitty-theme.conf`
 - Create: `modules/dev/kitty.nix`
 - Modify: `modules/default.nix`
@@ -1042,6 +1056,7 @@ git commit -m "feat: add kitty module with absorbed current-theme.conf"
 **Goal:** Bring the nvim config into the flake. Future iteration is infrequent (user stated ~annual).
 
 **Files:**
+
 - Copy: contents of `~/Downloads/repos/dotfiles/.config/nvim/` → `modules/dev/neovim/`
 - Create: `modules/dev/neovim.nix`
 - Modify: `modules/default.nix`
@@ -1114,6 +1129,7 @@ git commit -m "feat: absorb neovim config and add neovim module"
 **Goal:** Real platform-specific handling. Linux gets the `chsh` activation hook (ported from old `home.nix`) and the 1Password Linux agent socket. Darwin gets the macOS agent socket path.
 
 **Files:**
+
 - Create: `modules/platform/linux.nix`
 - Create: `modules/platform/darwin.nix`
 - Modify: `modules/default.nix` (conditional imports)
@@ -1204,6 +1220,7 @@ NOTE: Darwin build may fail on Linux if nixpkgs hasn't cached aarch64-darwin eva
 **Goal:** Port the `allowUnfreePredicate` pattern so we can introduce proprietary packages later without surprise. Empty list for now.
 
 **Files:**
+
 - Create: `modules/unfree.nix`
 - Modify: `modules/default.nix`
 
@@ -1255,6 +1272,7 @@ git commit -m "feat: add unfree allowance stub (empty for now)"
 **This task involves irreversible-feeling operations. STOP and read before executing.**
 
 **Files affected (outside the flake):**
+
 - Backup: `~/.zshrc`, `~/.zshrc.local`, `~/.zshenv`, `~/.gitconfig`, `~/.bashrc`, `~/.profile` to `~/.backup-pre-hm-<date>/`
 - Delete (they're symlinks into dotfiles): `~/.config/nvim`, `~/.config/kitty`, `~/.config/tmux`, `~/.config/oh-my-posh`
 - Activate: home-manager generation

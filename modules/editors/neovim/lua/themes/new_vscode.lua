@@ -34,7 +34,7 @@ M.base_30 = {
   statusline_bg = "#272727", -- vscPopupBack
   lightbg = "#252526", -- vscLeftDark
   pmenu_bg = "#272727", -- vscPopupBack
-  folder_bg = "#569CD6" -- vscBlue
+  folder_bg = "#569CD6", -- vscBlue
 }
 
 M.base_16 = {

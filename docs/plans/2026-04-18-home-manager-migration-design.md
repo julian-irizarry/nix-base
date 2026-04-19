@@ -115,22 +115,22 @@ home-manager-extended/
 
 All shell tools migrate to native home-manager `programs.*` modules to get full benefit (automatic shell integration, type-checked options, uniform upgrade path). Only nvim was considered for `mkOutOfStoreSymlink`, but since config iteration is rare (~annual), it's absorbed into the flake too.
 
-| Tool | Module | Notes |
-|---|---|---|
-| zsh | `programs.zsh` | Replaces manual `source $ZSH/oh-my-zsh.sh`, plugin list, history settings, aliases, keybinds. Custom zle widgets (`find_and_cd_widget`) go in `programs.zsh.initContent`. |
-| oh-my-posh | `programs.oh-my-posh` | Port existing `omp.json` into `settings` or point `useTheme` at a file. No prompt change. |
-| git | `programs.git` | Replaces `~/.gitconfig`. Identity from `my.git.*`. |
-| ssh | `programs.ssh` | `matchBlocks` from `my.ssh.extraHosts`. `IdentityAgent` configured per platform in `modules/platform/*.nix` — 1Password socket path differs between Linux and macOS. |
-| tmux | `programs.tmux` | Absorb existing config. Plugins via `tmuxPlugins`. |
-| kitty | `programs.kitty` | Absorb existing config. |
-| nvim | `xdg.configFile."nvim"` | Config absorbed into `modules/dev/neovim/`. Stable enough not to need out-of-store editing. |
-| fzf | `programs.fzf` | Native module handles shell integration (replaces `[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh`). |
-| zoxide | `programs.zoxide` | Native module replaces manual `eval "$(zoxide init zsh)"`. |
-| bat, eza, fd, ripgrep, jq, yq | `home.packages` + `programs.bat`/`programs.eza` where modules exist | Real binaries (not Debian's `batcat`/`fdfind`). Update aliases: `alias cat=bat`, `fd` directly. |
-| gh | `programs.gh` | Configured identity. |
-| direnv | `programs.direnv` | Auto-hooks into zsh. |
-| atuin | (dropped) | Not currently in active use. |
-| mamba/conda/nvm | (unmanaged) | Self-managing. Omit from flake. If needed, let them live in `~/.zshrc.local` on machines that have them installed. |
+| Tool                          | Module                                                              | Notes                                                                                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| zsh                           | `programs.zsh`                                                      | Replaces manual `source $ZSH/oh-my-zsh.sh`, plugin list, history settings, aliases, keybinds. Custom zle widgets (`find_and_cd_widget`) go in `programs.zsh.initContent`. |
+| oh-my-posh                    | `programs.oh-my-posh`                                               | Port existing `omp.json` into `settings` or point `useTheme` at a file. No prompt change.                                                                                 |
+| git                           | `programs.git`                                                      | Replaces `~/.gitconfig`. Identity from `my.git.*`.                                                                                                                        |
+| ssh                           | `programs.ssh`                                                      | `matchBlocks` from `my.ssh.extraHosts`. `IdentityAgent` configured per platform in `modules/platform/*.nix` — 1Password socket path differs between Linux and macOS.      |
+| tmux                          | `programs.tmux`                                                     | Absorb existing config. Plugins via `tmuxPlugins`.                                                                                                                        |
+| kitty                         | `programs.kitty`                                                    | Absorb existing config.                                                                                                                                                   |
+| nvim                          | `xdg.configFile."nvim"`                                             | Config absorbed into `modules/dev/neovim/`. Stable enough not to need out-of-store editing.                                                                               |
+| fzf                           | `programs.fzf`                                                      | Native module handles shell integration (replaces `[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh`).                                                                              |
+| zoxide                        | `programs.zoxide`                                                   | Native module replaces manual `eval "$(zoxide init zsh)"`.                                                                                                                |
+| bat, eza, fd, ripgrep, jq, yq | `home.packages` + `programs.bat`/`programs.eza` where modules exist | Real binaries (not Debian's `batcat`/`fdfind`). Update aliases: `alias cat=bat`, `fd` directly.                                                                           |
+| gh                            | `programs.gh`                                                       | Configured identity.                                                                                                                                                      |
+| direnv                        | `programs.direnv`                                                   | Auto-hooks into zsh.                                                                                                                                                      |
+| atuin                         | (dropped)                                                           | Not currently in active use.                                                                                                                                              |
+| mamba/conda/nvm               | (unmanaged)                                                         | Self-managing. Omit from flake. If needed, let them live in `~/.zshrc.local` on machines that have them installed.                                                        |
 
 ### Useful patterns from the existing `home.nix` to keep
 
@@ -245,17 +245,17 @@ Once stable: remove `.backup` files, archive the old `~/Downloads/repos/dotfiles
 
 ## Key decisions log
 
-| Decision | Choice | Why |
-|---|---|---|
-| Flake structure | Two flakes: base (public) + extended (private) as flake input | Clean separation, extended can ride version of base, base stays shareable |
-| Config style | Parameterized modules with `my.*` option surface | Honest contract, no `mkForce` noise, clean extension point |
-| Option count | ~5 (`git.*`, `nix.extraNixPath`, `zsh.extraInitFragments`, `ssh.extraHosts`) | Only parameterize what genuinely varies |
-| Platform handling | `lib.optionals pkgs.stdenv.is*` in `modules/default.nix` | Idiomatic, no `hosts/` dir needed |
-| Prompt | Keep oh-my-posh | Avoid scope creep; easy swap to starship later |
-| nvim | Absorb into flake | Rare iteration, benefits from full reproducibility |
-| Other dotfiles (tmux, kitty, oh-my-posh) | Absorb via native modules | Use full home-manager capabilities |
-| Atuin | Dropped | Not in active use |
-| Secrets | 1Password CLI at shell init via `my.zsh.extraInitFragments` | No secrets in repos, graceful fallback, minimal ceremony |
-| SSH keys | 1Password agent only | Keys never on disk; cross-platform mechanism |
-| Git identity (cross-account) | Manual per-repo config + GCM for HTTPS auth | Too rare to bake into flake |
-| Migration strategy | Big-bang cutover | User comfortable with risk given backups and home-manager's generation rollback |
+| Decision                                 | Choice                                                                       | Why                                                                             |
+| ---------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Flake structure                          | Two flakes: base (public) + extended (private) as flake input                | Clean separation, extended can ride version of base, base stays shareable       |
+| Config style                             | Parameterized modules with `my.*` option surface                             | Honest contract, no `mkForce` noise, clean extension point                      |
+| Option count                             | ~5 (`git.*`, `nix.extraNixPath`, `zsh.extraInitFragments`, `ssh.extraHosts`) | Only parameterize what genuinely varies                                         |
+| Platform handling                        | `lib.optionals pkgs.stdenv.is*` in `modules/default.nix`                     | Idiomatic, no `hosts/` dir needed                                               |
+| Prompt                                   | Keep oh-my-posh                                                              | Avoid scope creep; easy swap to starship later                                  |
+| nvim                                     | Absorb into flake                                                            | Rare iteration, benefits from full reproducibility                              |
+| Other dotfiles (tmux, kitty, oh-my-posh) | Absorb via native modules                                                    | Use full home-manager capabilities                                              |
+| Atuin                                    | Dropped                                                                      | Not in active use                                                               |
+| Secrets                                  | 1Password CLI at shell init via `my.zsh.extraInitFragments`                  | No secrets in repos, graceful fallback, minimal ceremony                        |
+| SSH keys                                 | 1Password agent only                                                         | Keys never on disk; cross-platform mechanism                                    |
+| Git identity (cross-account)             | Manual per-repo config + GCM for HTTPS auth                                  | Too rare to bake into flake                                                     |
+| Migration strategy                       | Big-bang cutover                                                             | User comfortable with risk given backups and home-manager's generation rollback |

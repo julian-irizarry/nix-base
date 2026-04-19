@@ -3,7 +3,7 @@
 Base home-manager module library. Cross-platform (Linux + macOS).
 
 This repo is a **library** — it exposes a reusable module set and a small
-`lib.mkHome` helper. It is not directly activatable. A thin "consumer" flake 
+`lib.mkHome` helper. It is not directly activatable. A thin "consumer" flake
 supplies identity and calls `mkHome`.
 
 ## Structure

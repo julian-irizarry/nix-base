@@ -7,10 +7,20 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { nixpkgs, home-manager, ... }:
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      treefmt-nix,
+      ...
+    }:
     let
       mkHome = import ./lib/mkHome.nix { inherit nixpkgs home-manager; };
 
@@ -19,6 +29,8 @@
         "aarch64-darwin"
       ];
       forSupportedSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f system);
+
+      treefmtFor = system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix;
 
       smokeConfigs = mkHome {
         systems = supportedSystems;
@@ -36,10 +48,11 @@
 
       lib = { inherit mkHome; };
 
-      formatter = forSupportedSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
+      formatter = forSupportedSystems (system: (treefmtFor system).config.build.wrapper);
 
       checks = forSupportedSystems (system: {
         default = smokeConfigs.${system}.activationPackage;
+        formatting = (treefmtFor system).config.build.check self;
       });
     };
 }

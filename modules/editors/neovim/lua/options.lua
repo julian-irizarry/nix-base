@@ -34,7 +34,7 @@ vim.opt.cmdheight = 0
 
 vim.opt.swapfile = false
 vim.opt.backup = false
-vim.opt.undodir = vim.fn.stdpath("data") .. "/undo"
+vim.opt.undodir = vim.fn.stdpath "data" .. "/undo"
 vim.opt.undofile = true
 
 -- vim.opt.timeoutlen = 180
@@ -48,24 +48,24 @@ vim.opt.autoindent = true
 vim.opt.foldmethod = "expr"
 vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
 vim.opt.foldtext = "nvim_treesitter#foldtext()"
-vim.opt.foldenable = false  -- Start with all folds open
+vim.opt.foldenable = false -- Start with all folds open
 vim.opt.foldlevel = 20
 
-vim.o.cursorlineopt ='both' -- to enable cursorline!
-local group = vim.api.nvim_create_augroup('user_cmds', { clear = true })
+vim.o.cursorlineopt = "both" -- to enable cursorline!
+local group = vim.api.nvim_create_augroup("user_cmds", { clear = true })
 
-vim.api.nvim_create_user_command('ReloadConfig', 'source $MYVIMRC', {})
+vim.api.nvim_create_user_command("ReloadConfig", "source $MYVIMRC", {})
 
-vim.api.nvim_create_autocmd('TextYankPost', {
-	desc = 'Highlight on yank',
-	group = group,
-	callback = function()
-		vim.highlight.on_yank({ higroup = 'Visual', timeout = 200 })
-	end,
+vim.api.nvim_create_autocmd("TextYankPost", {
+  desc = "Highlight on yank",
+  group = group,
+  callback = function()
+    vim.highlight.on_yank { higroup = "Visual", timeout = 200 }
+  end,
 })
 
-vim.api.nvim_create_autocmd('FileType', {
-	pattern = { 'help', 'man' },
-	group = group,
-	command = 'nnoremap <buffer> q <cmd>quit<cr>'
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "help", "man" },
+  group = group,
+  command = "nnoremap <buffer> q <cmd>quit<cr>",
 })

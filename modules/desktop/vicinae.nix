@@ -10,6 +10,10 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     systemd = {
       enable = true;
       autoStart = true;
+      # nix-built Qt6 can't find a hardware GL driver on non-NixOS
+      # (Ubuntu has no /run/opengl-driver). Force the software scenegraph
+      # so RHI init doesn't fatal-out when the window first opens.
+      environment.QT_QUICK_BACKEND = "software";
     };
   };
 }

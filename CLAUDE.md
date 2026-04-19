@@ -74,9 +74,10 @@ Only values that genuinely differ between consumers are options. Everything else
   placeholder for the `IdentityAgent` socket path. Linux path is
   `~/.1password/agent.sock`, macOS is under
   `~/Library/Group Containers/.../agent.sock`. Configure per-platform, not shared.
-- **Linux `chsh` activation hook.** `modules/platform/linux.nix` runs `sudo chsh`
-  during activation if the user's login shell isn't the home-manager zsh. This
-  preserves the "one-command bootstrap" promise; don't remove it.
+- **Login shell is not managed by home-manager.** Run `chsh -s $(which zsh)` once
+  per fresh machine. An earlier activation hook did this automatically via
+  `sudo chsh` but was removed — it prompted for a password on every switch and
+  broke non-interactive activations.
 - **`initContent` ordering matters.** `modules/shell/zsh.nix` uses `lib.mkMerge`
   with `mkBefore` (sources `.zshenv.local`), the default slot (bindkeys, completion
   zstyles, widgets, sources `.zshrc.local`), and `mkAfter` (concatenates

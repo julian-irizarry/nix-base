@@ -15,10 +15,16 @@
     enable = true;
     enableZshIntegration = true;
   };
+  programs.broot = {
+    enable = true;
+    enableZshIntegration = true;
+  };
   programs.gh.enable = true;
+  programs.lazygit.enable = true;
   programs.less.enable = true;
   programs.man.enable = true;
   programs.readline.enable = true;
+  programs.tealdeer.enable = true;
   programs.uv.enable = true;
 
   home.packages = with pkgs; [
@@ -36,5 +42,8 @@
     gnumake
     pkg-config
     rustup
+    just
+    hyperfine
+    watchexec
   ];
 }

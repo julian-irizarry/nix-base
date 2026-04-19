@@ -26,6 +26,7 @@
     enableZshIntegration = true;
   };
   programs.gh.enable = true;
+  programs.home-manager.enable = true;
   programs.lazygit.enable = true;
   programs.less.enable = true;
   programs.man.enable = true;

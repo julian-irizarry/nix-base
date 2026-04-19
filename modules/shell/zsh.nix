@@ -5,22 +5,64 @@
   ...
 }:
 
+let
+  zshCustomPrefix = "oh-my-zsh";
+  # Stage a third-party plugin's source into $ZSH_CUSTOM/plugins/<plugin>/ so
+  # oh-my-zsh's loader can find it by plain name. OMZ expects each plugin dir
+  # to contain <plugin>/<plugin>.plugin.zsh.
+  mkZshPlugin =
+    {
+      pkg,
+      plugin ? pkg.pname,
+    }:
+    {
+      "${zshCustomPrefix}/plugins/${plugin}" = {
+        source = "${pkg.src}";
+        recursive = true;
+      };
+    };
+in
 {
   home.sessionPath = [
     "$HOME/.local/bin"
     "$HOME/.npm-global/bin"
   ];
 
+  xdg.dataFile = lib.mergeAttrsList [
+    (mkZshPlugin { pkg = pkgs.zsh-autopair; })
+    (mkZshPlugin { pkg = pkgs.zsh-completions; })
+    (mkZshPlugin {
+      pkg = pkgs.zsh-fzf-tab;
+      plugin = "fzf-tab";
+    })
+    (mkZshPlugin {
+      pkg = pkgs.zsh-fast-syntax-highlighting;
+      plugin = "fast-syntax-highlighting";
+    })
+  ];
+
   programs.zsh = {
     enable = true;
     enableCompletion = true;
     autosuggestion.enable = true;
-    syntaxHighlighting.enable = true;
+    syntaxHighlighting.enable = false;
 
     oh-my-zsh = {
       enable = true;
       theme = "robbyrussell";
-      plugins = [ "git" ];
+      plugins = [
+        "git"
+        "ssh"
+        "kitty"
+        # Order matters for these: completions must load before compinit,
+        # fzf-tab must load after compinit but before any plugin that wraps
+        # widgets, and fast-syntax-highlighting should load last so it can
+        # wrap widgets registered by earlier plugins.
+        "zsh-autopair"
+        "zsh-completions"
+        "fzf-tab"
+        "fast-syntax-highlighting"
+      ];
     };
 
     history = {
@@ -38,14 +80,6 @@
       searchDownKey = [ "^N" ];
     };
 
-    plugins = [
-      {
-        name = "fzf-tab";
-        src = pkgs.zsh-fzf-tab;
-        file = "share/fzf-tab/fzf-tab.plugin.zsh";
-      }
-    ];
-
     shellAliases = {
       vim = "nvim";
       nd = "nix develop -vvv -c $SHELL";
@@ -60,6 +94,7 @@
     sessionVariables = {
       EDITOR = "nvim";
       ZSH = "$HOME/.oh-my-zsh";
+      ZSH_CUSTOM = "${config.xdg.dataHome}/${zshCustomPrefix}";
       GTEST_COLOR = "1";
     };
 

@@ -10,6 +10,7 @@
     ./ssh.nix
     ./nix-settings.nix
     ./dev/cli-tools.nix
+    ./dev/tmux.nix
     ./dev/vscode.nix
     ./shell/zsh.nix
     ./shell/prompt.nix

@@ -115,3 +115,6 @@ and `home.stateVersion` are derived; override via `lib.mkForce` if needed.
   `~/.claude/CLAUDE.md`).
 - Prefer adding a new `my.*` option only when a value genuinely differs between
   personal and work use. Hardcode otherwise.
+- **Comment sparingly.** Only comment when the code is not obvious — hidden
+  constraints, workarounds, ordering requirements, or surprising choices.
+  Don't restate what the code plainly does.

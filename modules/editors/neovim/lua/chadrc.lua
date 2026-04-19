@@ -104,14 +104,6 @@ M.ui = {
   },
 
   tabufline = { enabled = false },
-
-  cmp = {
-    lspkind_text = true,
-    style = "atom", -- default/flat_light/flat_dark/atom/atom_colored
-    format_colors = {
-      tailwind = false,
-    },
-  },
 }
 
 return M

@@ -167,4 +167,39 @@ return {
       }
     end,
   },
+
+  {
+    "saghen/blink.cmp",
+    version = "1.*",
+    dependencies = { "rafamadriz/friendly-snippets" },
+    event = "InsertEnter",
+    opts = {
+      keymap = { preset = "default" },
+      appearance = { nerd_font_variant = "mono" },
+      sources = {
+        default = { "lsp", "path", "snippets", "buffer" },
+        providers = {
+          lazydev = {
+            name = "LazyDev",
+            module = "lazydev.integrations.blink",
+            score_offset = 100,
+          },
+        },
+      },
+      completion = {
+        documentation = { auto_show = true, auto_show_delay_ms = 200 },
+      },
+      signature = { enabled = true },
+    },
+    opts_extend = { "sources.default" },
+  },
+
+  { "hrsh7th/nvim-cmp", enabled = false },
+  { "hrsh7th/cmp-buffer", enabled = false },
+  { "hrsh7th/cmp-path", enabled = false },
+  { "hrsh7th/cmp-nvim-lua", enabled = false },
+  { "hrsh7th/cmp-nvim-lsp", enabled = false },
+  { "L3MON4D3/LuaSnip", enabled = false },
+  { "saadparwaiz1/cmp_luasnip", enabled = false },
+  { "windwp/nvim-autopairs", enabled = false },
 }

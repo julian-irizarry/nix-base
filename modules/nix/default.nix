@@ -1,6 +1,6 @@
 {
   imports = [
-    ./settings.nix
+    ./nix-path.nix
     ./unfree.nix
   ];
 }

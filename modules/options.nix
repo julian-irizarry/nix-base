@@ -39,44 +39,10 @@
       extraNixPath = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
-        description = "Additional entries appended to NIX_PATH.";
-      };
-      extraExperimentalFeatures = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
         description = ''
-          Extra experimental-features appended to the base set
-          [ nix-command flakes ] in ~/.config/nix/nix.conf.
-        '';
-      };
-      extraSubstituters = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = ''
-          Extra binary caches appended via extra-substituters. The daemon
-          must trust these (configured in /etc/nix/nix.custom.conf on
-          Determinate installs).
-        '';
-      };
-      extraTrustedPublicKeys = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "Extra trusted-public-keys appended via extra-trusted-public-keys.";
-      };
-      extraSettings = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.oneOf [
-            lib.types.str
-            lib.types.bool
-            lib.types.int
-            (lib.types.listOf lib.types.str)
-          ]
-        );
-        default = { };
-        description = ''
-          Additional freeform key=value entries written to
-          ~/.config/nix/nix.conf. List values are space-joined per
-          nix.conf semantics.
+          Additional entries appended to NIX_PATH. ~/.config/nix/nix.conf
+          is owned by cachix/nix-installer; substituters and keys belong
+          in /etc/nix/nix.custom.conf, not here.
         '';
       };
     };

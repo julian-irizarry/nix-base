@@ -22,32 +22,19 @@ M.base46 = {
 }
 
 local sep_l = "█"
-local sep_r = "%#St_sep_r#" .. "█" .. " %#ST_EmptySpace#"
 
 local function gen_block(icon, txt, sep_l_hlgroup, iconHl_group, txt_hl_group)
   return sep_l_hlgroup .. sep_l .. iconHl_group .. icon .. txt_hl_group .. " " .. txt
 end
 
-local function search_indicator()
-  if vim.v.hlsearch == 0 then
+-- Noice provides search / command / mode statusline APIs. Wrap them with a
+-- pcall so the statusline still renders if noice hasn't loaded yet.
+local function noice_status(component)
+  local ok, noice = pcall(require, "noice")
+  if not ok or not noice.api.status[component].has() then
     return ""
   end
-
-  local result = vim.fn.searchcount { recompute = 1 }
-  if vim.tbl_isempty(result) then
-    return ""
-  end
-
-  if result.incomplete == 1 then
-    return string.format(" /%s [?/??]", vim.fn.getreg "/")
-  elseif result.incomplete == 2 then
-    if result.total > result.maxcount and result.current > result.maxcount then
-      return string.format(" /%s [>%d/>%d]", vim.fn.getreg "/", result.current, result.total)
-    elseif result.total > result.maxcount then
-      return string.format(" /%s [%d/>%d]", vim.fn.getreg "/", result.current, result.total)
-    end
-  end
-  return string.format(" %d/%d ", result.current, result.total)
+  return "%#St_Pos_txt# " .. noice.api.status[component].get() .. " "
 end
 
 M.ui = {
@@ -60,45 +47,26 @@ M.ui = {
       "file",
       "git",
       "%=",
-      "lsp_msg",
       "%=",
-      "search_indicator",
+      "noice_cmd",
+      "noice_mode",
+      "noice_search",
       "diagnostics",
       "lsp",
-      "neocodeium",
       "line_percent",
     },
     modules = {
       line_percent = function()
-        return gen_block(" ", "%p%% ", "%#St_Pos_sep#", "%#St_Pos_bg#", "%#St_Pos_txt#")
+        return gen_block(" ", "%p%% ", "%#St_Pos_sep#", "%#St_Pos_bg#", "%#St_Pos_txt#")
       end,
-      search_indicator = function()
-        return "%#St_Pos_txt#" .. " " .. search_indicator()
+      noice_cmd = function()
+        return noice_status "command"
       end,
-      neocodeium = function()
-        local ok, neocodeium = pcall(require, "neocodeium")
-        if not ok then
-          return ""
-        end
-        local status, server_status = neocodeium.get_status()
-        local status_icons = {
-          [0] = "󰚩", -- Enabled
-          [1] = "󱚧", -- Disabled Globally
-          [2] = "󱙻", -- Disabled for Buffer
-          [3] = "󱙺", -- Disabled filetype
-          [4] = "󱙺", -- Disabled filter
-          [5] = "󱚠", -- Wrong encoding
-          [6] = "󱚠", -- Special buftype
-        }
-        local server_icons = {
-          [0] = "", -- Connected
-          [1] = "", -- Connecting
-          [2] = "", -- Disconnected
-        }
-        if status == 0 and server_status == 0 then
-          return "%#St_Pos_txt#" .. (status_icons[status] or "") .. (server_icons[server_status] or "") .. " "
-        end
-        return ""
+      noice_mode = function()
+        return noice_status "mode"
+      end,
+      noice_search = function()
+        return noice_status "search"
       end,
     },
   },

@@ -3,18 +3,25 @@
 Base home-manager module library. Cross-platform (Linux + macOS).
 
 This repo is a **library** — it exposes a reusable module set and a small
-`lib.mkHome` helper. It is not directly activatable. A thin "consumer" flake
-(personal or work) supplies identity and calls `mkHome`.
+`lib.mkHome` helper. It is not directly activatable. A thin "consumer" flake 
+supplies identity and calls `mkHome`.
 
 ## Structure
 
 - `flake.nix` — exposes `homeModules.default`, `lib.mkHome`, and `checks`
 - `lib/mkHome.nix` — helper wrapping `homeManagerConfiguration`
-- `modules/` — reusable modules
-  - `options.nix` — `my.*` option surface
-  - `default.nix` — imports everything + platform conditional
+- `modules/` — reusable modules, grouped by concern
+  - `options.nix` — `my.*` option surface (the public contract)
   - `home-defaults.nix` — derives `home.homeDirectory` from `home.username`
-  - `shell/`, `dev/`, `platform/` — grouped modules
+  - `default.nix` — imports every topical folder below
+  - `cli/` — ripgrep, fd, jq, fzf, zoxide, direnv, gh, and friends
+  - `editors/` — neovim (with absorbed lua config), vscode
+  - `identity/` — git
+  - `network/` — ssh
+  - `nix/` — user-level nix.conf, allow-unfree predicate
+  - `platform/` — linux and darwin specifics (gated by `pkgs.stdenv.hostPlatform.is*`)
+  - `shell/` — zsh, oh-my-posh prompt
+  - `terminal/` — kitty, tmux, fonts
 - `docs/plans/` — design and implementation plans
 
 ## Supported systems
@@ -116,9 +123,3 @@ dummy identity values, so you can verify modules evaluate without a consumer:
 cd ~/repos/home-manager
 nix flake check
 ```
-
-## Work configuration
-
-A separate private flake (`home-manager-extended`) imports this base the same
-way a personal consumer flake does, and adds work-specific modules for
-identity, secrets, SSH hosts, etc.

@@ -173,4 +173,26 @@ return {
   { "L3MON4D3/LuaSnip", enabled = false },
   { "saadparwaiz1/cmp_luasnip", enabled = false },
   { "windwp/nvim-autopairs", enabled = false },
+
+  {
+    "Bekaboo/dropbar.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    event = "LspAttach",
+    opts = {},
+  },
+
+  {
+    "jiaoshijie/undotree",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    keys = {
+      {
+        "<leader>u",
+        function()
+          require("undotree").toggle()
+        end,
+        desc = "Undo tree toggle",
+      },
+    },
+    opts = {},
+  },
 }

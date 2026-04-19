@@ -4,5 +4,6 @@
   imports = [
     ./options.nix
     ./home-defaults.nix
+    ./git.nix
   ];
 }

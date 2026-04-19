@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   programs.bat.enable = true;
@@ -41,9 +41,18 @@
     btop
     gnumake
     pkg-config
-    rustup
+    (lib.lowPrio rustup)
     just
     hyperfine
     watchexec
+    # LSP servers and formatters
+    bash-language-server
+    clang-tools
+    gopls
+    lua-language-server
+    nixd
+    pyright
+    rust-analyzer
+    stylua
   ];
 }

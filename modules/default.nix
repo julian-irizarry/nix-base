@@ -5,5 +5,6 @@
     ./options.nix
     ./home-defaults.nix
     ./git.nix
+    ./dev/cli-tools.nix
   ];
 }

@@ -7,6 +7,7 @@
     ./home-defaults.nix
     ./fonts.nix
     ./git.nix
+    ./ssh.nix
     ./dev/cli-tools.nix
     ./dev/vscode.nix
     ./shell/zsh.nix

@@ -135,7 +135,32 @@ export class WeztermBackend implements TerminalBackend {
     ).unref();
   }
 
-  async listOpenProjects(_roots: string[]): Promise<OpenProject[]> {
-    throw new Error("WeztermBackend.listOpenProjects implemented in stage 4");
+  async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
+    const panes = wzList();
+    const resolvedRoots = roots.map((r) => r.replace(/\/$/, ""));
+    const cwdFor = (p: WzPane): string => {
+      // wezterm returns cwd as file://host/path; strip the prefix
+      const m = p.cwd.match(/^file:\/\/[^/]*(\/.*)$/);
+      return m ? m[1] : p.cwd;
+    };
+    const underRoot = (cwd: string) =>
+      resolvedRoots.some((r) => cwd === r || cwd.startsWith(r + "/"));
+
+    const seen = new Set<string>();
+    const out: OpenProject[] = [];
+    for (const pane of panes) {
+      const cwd = cwdFor(pane);
+      if (!underRoot(cwd)) continue;
+      const key = `${pane.tab_id}::${cwd}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        cwd,
+        workspace: pane.workspace,
+        tabTitle: pane.title,
+        clientId: String(pane.pane_id),
+      });
+    }
+    return out;
   }
 }

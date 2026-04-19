@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
   "name": "sessionizer",
   "title": "Sessionizer",
-  "description": "Fuzzy-find a project directory and open it in kitty (shell or nvim); focuses an existing tab if one matches.",
+  "description": "Fuzzy-find a project directory and open it in your terminal (wezterm workspaces or kitty tabs); can also jump to an already-open project.",
   "categories": [
     "Productivity",
     "Developer Tools"
@@ -15,7 +15,14 @@
       "name": "sessionizer",
       "title": "Sessionizer",
       "subtitle": "Jump to a project directory",
-      "description": "Pick a directory under the configured roots and open it in a kitty tab.",
+      "description": "Pick a directory under the configured roots and open it in a terminal tab or workspace.",
+      "mode": "view"
+    },
+    {
+      "name": "find-open-project",
+      "title": "Find Open Project",
+      "subtitle": "Jump to an already-open project",
+      "description": "Lists project directories currently open in panes/tabs and focuses the chosen one.",
       "mode": "view"
     }
   ],

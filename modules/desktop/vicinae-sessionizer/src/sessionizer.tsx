@@ -8,8 +8,8 @@ import {
   showToast,
   Toast,
 } from "@vicinae/api";
-import { execFileSync, spawn } from "child_process";
 import { readdirSync, readFileSync, statSync, existsSync } from "fs";
+import { getBackend, type TerminalBackend } from "./backends";
 import { homedir } from "os";
 import { basename, join, resolve } from "path";
 
@@ -56,53 +56,6 @@ function listChildDirs(parent: string): Entry[] {
   } catch {
     return [];
   }
-}
-
-// ─── Kitty integration ────────────────────────────────────────────────
-
-const KITTY_SOCKET = "unix:/tmp/kitty";
-
-function focusTabByTitle(title: string): boolean {
-  try {
-    execFileSync(
-      "kitten",
-      ["@", "--to", KITTY_SOCKET, "focus-tab", "--match", `title:${title}`],
-      { stdio: "ignore" },
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function launchKittyTab(title: string, cwd: string, cmd: string[] = []) {
-  const args = [
-    "@",
-    "--to",
-    KITTY_SOCKET,
-    "launch",
-    "--type=tab",
-    `--title=${title}`,
-    `--cwd=${cwd}`,
-    ...cmd,
-  ];
-  spawn("kitten", args, { detached: true, stdio: "ignore" }).unref();
-}
-
-async function openInKitty(entry: Entry, cmd: string[] = []) {
-  const tabTitle = entry.name;
-  if (focusTabByTitle(tabTitle)) {
-    await showToast({
-      title: `Focused ${tabTitle}`,
-      style: Toast.Style.Success,
-    });
-    return;
-  }
-  launchKittyTab(tabTitle, entry.path, cmd);
-  await showToast({
-    title: `Opened ${tabTitle}`,
-    style: Toast.Style.Success,
-  });
 }
 
 // ─── Directory browser (for "Browse root…") ───────────────────────────
@@ -176,6 +129,7 @@ function Browser({
 export default function Sessionizer() {
   const [configured, setConfigured] = useState<string[]>([]);
   const [activeRoot, setActiveRoot] = useState<string>("");
+  const [backend, setBackend] = useState<TerminalBackend | null>(null);
   const { push, pop } = useNavigation();
 
   useEffect(() => {
@@ -184,6 +138,10 @@ export default function Sessionizer() {
     if (roots.length > 0) {
       setActiveRoot(roots[0]);
     }
+  }, []);
+
+  useEffect(() => {
+    getBackend("kitty").then(setBackend);
   }, []);
 
   const entries = useMemo(() => {
@@ -247,13 +205,43 @@ export default function Sessionizer() {
                 <Action
                   title="Open Shell in Kitty"
                   icon={Icon.Terminal}
-                  onAction={() => openInKitty(e)}
+                  onAction={async () => {
+                    if (!backend) return;
+                    try {
+                      await backend.openSession(e.name, e.path);
+                      await showToast({
+                        title: `Opened ${e.name}`,
+                        style: Toast.Style.Success,
+                      });
+                    } catch (err) {
+                      await showToast({
+                        title: "Error",
+                        message: String(err),
+                        style: Toast.Style.Failure,
+                      });
+                    }
+                  }}
                 />
                 <Action
                   title="Open Neovim in Kitty"
                   icon={Icon.Pencil}
                   shortcut={{ modifiers: ["cmd"], key: "return" }}
-                  onAction={() => openInKitty(e, ["nvim"])}
+                  onAction={async () => {
+                    if (!backend) return;
+                    try {
+                      await backend.openSession(e.name, e.path, ["nvim"]);
+                      await showToast({
+                        title: `Opened ${e.name}`,
+                        style: Toast.Style.Success,
+                      });
+                    } catch (err) {
+                      await showToast({
+                        title: "Error",
+                        message: String(err),
+                        style: Toast.Style.Failure,
+                      });
+                    }
+                  }}
                 />
                 <Action.CopyToClipboard
                   title="Copy Path"

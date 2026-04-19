@@ -33,8 +33,6 @@ map({ "n", "x", "o" }, "<leader>h", "^") -- beginning of line
 map({ "n", "x", "o" }, "<leader>l", "g_") -- end of line
 map("n", "<leader>a", ":keepjumps normal! ggVG<cr>")
 
-map("n", "<leader>u", vim.cmd.UndotreeToggle, { desc = "undo tree toggle" })
-
 map("n", "<C-t>", function()
   require("nvchad.themes").open()
 end)
@@ -92,45 +90,7 @@ map("n", "<leader>sk", fzf.keymaps, { desc = "FzfLua Search Keymaps" })
 map("n", "<leader>fw", fzf.grep_cword, { desc = "FzfLua Search Word Under Cursor" })
 map("v", "<leader>fw", fzf.grep_visual, { noremap = true, silent = true, desc = "FzfLua Search Selected Text" })
 
--- Definitions and references
-map("n", "gd", "<cmd>Lspsaga goto_definition<CR>", { desc = "Lspsaga Go to [D]efinition" })
--- map("n", "gp", "<cmd>Lspsaga peek_definition<CR>", { desc = "Lspsaga [P]eek Definition" })
-
--- Hover and documentation
-map("n", "shift+k", "<cmd>Lspsaga hover_doc<CR>", { desc = "Lspsaga [H]over Documentation" })
-
--- Diagnostics
-map("n", "gl", "<cmd>Lspsaga show_line_diagnostics<CR>", { desc = "Lspsaga Show Line [D]iagnostics" })
-map("n", "]d", "<cmd>Lspsaga diagnostic_jump_prev<CR>", { desc = "Lspsaga Jump to Previous [D]iagnostic" })
-map("n", "[d", "<cmd>Lspsaga diagnostic_jump_next<CR>", { desc = "Lspsaga Jump to Next [D]iagnostic" })
-
--- Code actions
-map("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", { desc = "Lspsaga Trigger [C]ode [A]ction" })
-map(
-  "v",
-  "<leader>ca",
-  "<cmd>Lspsaga code_action<CR>",
-  { noremap = true, silent = true, desc = "Lspsaga Trigger [C]ode [A]ction (Visual)" }
-)
-
 map("n", "<leader>gs", fzf.git_status, { desc = "FzfLua Search Git Status" })
-
--- Rename
-map("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", { desc = "Lspsaga [R]e[n]ame Symbol" })
-
--- Symbol outline
-map("n", "<leader>o", "<cmd>Lspsaga outline<CR>", { desc = "Lspsaga Toggle Symbol [O]utline" })
-
--- Finder
-map("n", "<leader>gr", "<cmd>Lspsaga finder<CR>", { desc = "Lspsaga [F]ind References and Definitions" })
-
--- Call hierarchy
-map("n", "<leader>ci", "<cmd>Lspsaga incoming_calls<CR>", { desc = "Lspsaga [C]all Hierarchy: [I]ncoming" })
-map("n", "<leader>co", "<cmd>Lspsaga outgoing_calls<CR>", { desc = "Lspsaga [C]all Hierarchy: [O]utgoing" })
-
--- Key mappings for navigating diagnostics and showing floats
-map("n", "[d", "<cmd>Lspsaga diagnostic_jump_next<cr>", { desc = "Goto Prev [d]iagnostic" })
-map("n", "]d", "<cmd>Lspsaga diagnostic_jump_prev<cr>", { desc = "Goto Prev [d]iagnostic" })
 
 -- Folding keybindings
 map("n", "<leader>cf", "zc", { desc = "Fold current function/class" })

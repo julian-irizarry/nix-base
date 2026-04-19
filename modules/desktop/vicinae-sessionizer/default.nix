@@ -56,10 +56,15 @@ let
     };
   };
 
-  rootsJson = pkgs.writeText "sessionizer-roots.json" (builtins.toJSON cfg.codeRoots);
+  sessionizerJson = pkgs.writeText "sessionizer.json" (
+    builtins.toJSON {
+      roots = cfg.codeRoots;
+      terminal = cfg.terminal;
+    }
+  );
 in
 lib.mkIf (pkgs.stdenv.hostPlatform.isLinux && cfg.enableSessionizer) {
-  xdg.configFile."vicinae/sessionizer-roots.json".source = rootsJson;
+  xdg.configFile."vicinae/sessionizer.json".source = sessionizerJson;
 
   # Vicinae reads user-installed extensions from XDG_DATA_HOME; symlink
   # the built derivation there.

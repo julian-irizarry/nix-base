@@ -79,8 +79,19 @@
         default = [ "~/sources" ];
         description = ''
           Roots the sessionizer extension scans for project directories.
-          Rendered to ~/.config/vicinae/sessionizer-roots.json. Each entry
-          is a path; leading ~ is expanded by the extension at runtime.
+          Rendered to ~/.config/vicinae/sessionizer.json. Each entry is a
+          path; leading ~ is expanded by the extension at runtime.
+        '';
+      };
+      terminal = lib.mkOption {
+        type = lib.types.enum [
+          "wezterm"
+          "kitty"
+        ];
+        default = "wezterm";
+        description = ''
+          Terminal backend the sessionizer extension targets. wezterm uses
+          named workspaces; kitty uses tab titles.
         '';
       };
     };

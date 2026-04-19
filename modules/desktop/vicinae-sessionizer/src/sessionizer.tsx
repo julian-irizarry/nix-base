@@ -8,37 +8,11 @@ import {
   showToast,
   Toast,
 } from "@vicinae/api";
-import { readdirSync, readFileSync, statSync, existsSync } from "fs";
+import { readdirSync } from "fs";
 import { getBackend, type TerminalBackend } from "./backends";
+import { loadConfig, type Config } from "./config";
 import { homedir } from "os";
-import { basename, join, resolve } from "path";
-
-// ─── Config ────────────────────────────────────────────────────────────
-
-// Roots are provided by the home-manager module via this JSON file,
-// rendered from `my.vicinae.codeRoots`. If the file is missing (extension
-// installed outside the nix flake, e.g. for development), fall back to
-// $HOME/sources so the extension still works.
-const ROOTS_FILE = join(
-  homedir(),
-  ".config",
-  "vicinae",
-  "sessionizer-roots.json",
-);
-const FALLBACK_ROOTS = [join(homedir(), "sources")];
-
-function readConfiguredRoots(): string[] {
-  try {
-    const raw = readFileSync(ROOTS_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((r) => typeof r === "string")) {
-      return parsed.map((r) => r.replace(/^~/, homedir())).filter(existsSync);
-    }
-  } catch {
-    // no-op; fall through to fallback
-  }
-  return FALLBACK_ROOTS.filter(existsSync);
-}
+import { join, resolve } from "path";
 
 // ─── Filesystem helpers ───────────────────────────────────────────────
 
@@ -127,22 +101,14 @@ function Browser({
 // ─── Main view ────────────────────────────────────────────────────────
 
 export default function Sessionizer() {
-  const [configured, setConfigured] = useState<string[]>([]);
-  const [activeRoot, setActiveRoot] = useState<string>("");
+  const [cfg] = useState<Config>(() => loadConfig());
+  const [activeRoot, setActiveRoot] = useState<string>(cfg.roots[0] ?? "");
   const [backend, setBackend] = useState<TerminalBackend | null>(null);
   const { push, pop } = useNavigation();
 
   useEffect(() => {
-    const roots = readConfiguredRoots();
-    setConfigured(roots);
-    if (roots.length > 0) {
-      setActiveRoot(roots[0]);
-    }
-  }, []);
-
-  useEffect(() => {
-    getBackend("kitty").then(setBackend);
-  }, []);
+    getBackend(cfg.terminal).then(setBackend);
+  }, [cfg.terminal]);
 
   const entries = useMemo(() => {
     if (!activeRoot) return [];
@@ -173,7 +139,7 @@ export default function Sessionizer() {
         setActiveRoot(val);
       }}
     >
-      {configured.map((r) => (
+      {cfg.roots.map((r) => (
         <List.Dropdown.Item
           key={r}
           title={r.replace(homedir(), "~")}

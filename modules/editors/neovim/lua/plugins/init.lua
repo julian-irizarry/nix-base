@@ -26,12 +26,6 @@ return {
     end,
   },
 
-  { "folke/which-key.nvim", enabled = false },
-
-  { "tpope/vim-fugitive", lazy = false },
-
-  { "vimpostor/vim-tpipeline", event = "VeryLazy" },
-
   {
     "stevearc/conform.nvim",
     -- event = 'BufWritePre', -- uncomment for format on save
@@ -110,8 +104,6 @@ return {
       }
     end,
   },
-
-  { "mbbill/undotree", lazy = false },
 
   { "mrjones2014/smart-splits.nvim", lazy = false },
 

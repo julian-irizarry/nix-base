@@ -97,6 +97,11 @@
 
       mouse_map ctrl+shift+right press ungrabbed combine : mouse_select_command_output : kitty_scrollback_nvim --config ksb_builtin_last_visited_cmd_output
 
+      map --when-focus-on var:IS_NVIM ctrl+h
+      map --when-focus-on var:IS_NVIM ctrl+j
+      map --when-focus-on var:IS_NVIM ctrl+k
+      map --when-focus-on var:IS_NVIM ctrl+l
+
       include current-theme.conf
     '';
   };

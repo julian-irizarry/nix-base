@@ -105,7 +105,11 @@ return {
     end,
   },
 
-  { "mrjones2014/smart-splits.nvim", lazy = false },
+  {
+    "mrjones2014/smart-splits.nvim",
+    lazy = false,
+    opts = { multiplexer_integration = "kitty" },
+  },
 
   {
     "mrcjkb/rustaceanvim",

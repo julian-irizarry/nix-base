@@ -35,5 +35,6 @@
     btop
     gnumake
     pkg-config
+    rustup
   ];
 }

@@ -7,5 +7,6 @@
     ./git.nix
     ./dev/cli-tools.nix
     ./shell/zsh.nix
+    ./shell/prompt.nix
   ];
 }

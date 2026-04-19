@@ -1,0 +1,114 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+  "blocks": [
+    {
+      "alignment": "left",
+      "newline": false,
+      "segments": [
+		{
+		  "type": "nix-shell",
+		  "style": "powerline",
+		  "foreground": "#FFFFFF",
+		  "background": "transparent",
+		  "template": "(nix)"
+		},
+        {
+          "type": "python",
+          "style": "plain",
+          "template": "<#ffd343>  </>",
+          "properties": {
+            "display_mode": "environment",
+            "fetch_virtual_env": true,
+            "display_default": false
+          }
+        },
+        {
+          "type": "python",
+          "style": "plain",
+          "foreground": "#ffd343",
+          "template": "{{ .Full }} {{ if .Venv }}<#00c7fc>({{ .Venv }})</>{{ end }}",
+          "properties": {
+            "fetch_virtual_env": true,
+            "display_default": false
+          }
+        },
+        {
+          "foreground": "#00c7fc",
+          "properties": {
+            "folder_icon": "",
+            "home_icon": "<#00c7f> ~ </>",
+            "style": "agnoster_full"
+          },
+          "style": "diamond",
+          "template": "  {{ .Path }} ",
+          "type": "path"
+        },
+		{
+		  "type": "nix-shell",
+		  "style": "powerline",
+		  "foreground": "#003fff",
+		  "background": "transparent",
+		  "template": "[nix:nix-shell-env]"
+		},
+        {
+          "foreground": "#A9FFB4",
+          "foreground_templates": [
+            "{{ if gt .Code 0 }}#ef5350{{ end }}"
+          ],
+          "properties": {
+            "always_enabled": true
+          },
+          "style": "plain",
+          "template": "<#00c7fc>  </>",
+          "type": "status"
+        },
+        {
+          "foreground": "#ee79d1",
+          "properties": {
+            "branch_icon": " ",
+            "fetch_stash_count": true,
+            "fetch_status": true,
+            "fetch_upstream_icon": true,
+            "fetch_worktree_count": true
+          },
+          "style": "diamond",
+          "template": " {{ .UpstreamIcon }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }} ",
+          "type": "git"
+        }
+      ],
+      "type": "prompt"
+    },
+    {
+      "alignment": "right",
+      "newline": false,
+      "segments": [
+        {
+          "foreground": "#a9ffb4",
+          "style": "plain",
+          "type": "text"
+        },
+        {
+          "foreground": "#a9ffb4",
+          "properties": {
+            "style": "dallas",
+            "threshold": 0
+          },
+          "style": "diamond",
+          "template": " {{ .FormattedMs }}s",
+          "type": "executiontime"
+        },
+        {
+          "properties": {
+            "root_icon": " "
+          },
+          "style": "diamond",
+          "template": "  ",
+          "type": "root"
+        }
+      ],
+      "type": "rprompt"
+    }
+  ],
+  "console_title_template": "{{ .Folder }}",
+  "version": 3
+}

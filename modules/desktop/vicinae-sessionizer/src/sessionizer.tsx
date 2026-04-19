@@ -11,6 +11,7 @@ import {
 import { readdirSync } from "fs";
 import { getBackend, type TerminalBackend } from "./backends";
 import { loadConfig, type Config } from "./config";
+import { loadMode, saveMode, type Mode } from "./mode";
 import { homedir } from "os";
 import { join, resolve } from "path";
 
@@ -104,11 +105,19 @@ export default function Sessionizer() {
   const [cfg] = useState<Config>(() => loadConfig());
   const [activeRoot, setActiveRoot] = useState<string>(cfg.roots[0] ?? "");
   const [backend, setBackend] = useState<TerminalBackend | null>(null);
+  const [mode, setMode] = useState<Mode>(() => loadMode());
   const { push, pop } = useNavigation();
 
   useEffect(() => {
     getBackend(cfg.terminal).then(setBackend);
   }, [cfg.terminal]);
+
+  const toggleMode = () => {
+    const next: Mode = mode === "nvim" ? "shell" : "nvim";
+    setMode(next);
+    saveMode(next);
+  };
+  const cmd = mode === "nvim" ? ["nvim"] : [];
 
   const entries = useMemo(() => {
     if (!activeRoot) return [];
@@ -156,7 +165,7 @@ export default function Sessionizer() {
 
   return (
     <List
-      searchBarPlaceholder={`Search under ${activeRoot.replace(homedir(), "~") || "…"}`}
+      searchBarPlaceholder={`Search under ${activeRoot.replace(homedir(), "~") || "…"}${mode === "nvim" ? " (nvim)" : ""}`}
       searchBarAccessory={rootDropdown}
     >
       <List.Section title={activeRoot.replace(homedir(), "~")}>
@@ -169,12 +178,12 @@ export default function Sessionizer() {
             actions={
               <ActionPanel>
                 <Action
-                  title="Open Shell in Kitty"
+                  title="Open"
                   icon={Icon.Terminal}
                   onAction={async () => {
                     if (!backend) return;
                     try {
-                      await backend.openSession(e.name, e.path);
+                      await backend.openSession(e.name, e.path, cmd);
                       await showToast({
                         title: `Opened ${e.name}`,
                         style: Toast.Style.Success,
@@ -189,15 +198,15 @@ export default function Sessionizer() {
                   }}
                 />
                 <Action
-                  title="Open Neovim in Kitty"
-                  icon={Icon.Pencil}
+                  title="Add Tab to Current"
+                  icon={Icon.PlusSquare}
                   shortcut={{ modifiers: ["cmd"], key: "return" }}
                   onAction={async () => {
                     if (!backend) return;
                     try {
-                      await backend.openSession(e.name, e.path, ["nvim"]);
+                      await backend.addTabToCurrent(e.path, cmd);
                       await showToast({
-                        title: `Opened ${e.name}`,
+                        title: `Added tab: ${e.name}`,
                         style: Toast.Style.Success,
                       });
                     } catch (err) {
@@ -208,6 +217,58 @@ export default function Sessionizer() {
                       });
                     }
                   }}
+                />
+                <Action
+                  title="Add Pane to Current"
+                  icon={Icon.AppWindowSidebarRight}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  onAction={async () => {
+                    if (!backend) return;
+                    try {
+                      await backend.addPaneToCurrent(e.path, cmd);
+                      await showToast({
+                        title: `Added pane: ${e.name}`,
+                        style: Toast.Style.Success,
+                      });
+                    } catch (err) {
+                      await showToast({
+                        title: "Error",
+                        message: String(err),
+                        style: Toast.Style.Failure,
+                      });
+                    }
+                  }}
+                />
+                <Action
+                  title="Open in New Workspace"
+                  icon={Icon.AppWindowList}
+                  shortcut={{ modifiers: ["opt"], key: "return" }}
+                  onAction={async () => {
+                    if (!backend) return;
+                    try {
+                      await backend.openInNewWorkspace(e.name, e.path, cmd);
+                      await showToast({
+                        title: `New workspace: ${e.name}`,
+                        style: Toast.Style.Success,
+                      });
+                    } catch (err) {
+                      await showToast({
+                        title: "Error",
+                        message: String(err),
+                        style: Toast.Style.Failure,
+                      });
+                    }
+                  }}
+                />
+                <Action
+                  title={
+                    mode === "nvim"
+                      ? "Switch to Shell Mode"
+                      : "Switch to Nvim Mode"
+                  }
+                  icon={Icon.Gear}
+                  shortcut={{ modifiers: ["cmd"], key: "e" }}
+                  onAction={toggleMode}
                 />
                 <Action.CopyToClipboard
                   title="Copy Path"

@@ -69,3 +69,13 @@ vim.api.nvim_create_autocmd("FileType", {
   group = group,
   command = "nnoremap <buffer> q <cmd>quit<cr>",
 })
+
+-- nvim 0.12 drops file-write msg_show events before noice's ui_attach sees
+-- them, so :w produced no toast. Emit our own via BufWritePost.
+vim.api.nvim_create_autocmd("BufWritePost", {
+  desc = "Toast on save",
+  group = group,
+  callback = function(args)
+    vim.notify(vim.fn.fnamemodify(args.file, ":~:."), vim.log.levels.INFO, { title = "Saved" })
+  end,
+})

@@ -236,6 +236,11 @@ return {
   },
 
   {
+    "rcarriga/nvim-notify",
+    opts = { background_colour = "#000000" },
+  },
+
+  {
     "folke/noice.nvim",
     event = "VeryLazy",
     dependencies = {
@@ -243,44 +248,26 @@ return {
       "rcarriga/nvim-notify",
     },
     opts = {
-      cmdline = {
-        enabled = true,
-        view = "cmdline_popup",
-      },
       messages = {
-        enabled = true,
         view = "mini",
         view_error = "mini",
         view_warn = "mini",
-        view_history = "messages",
-        view_search = "virtualtext",
       },
       routes = {
         {
-          filter = { event = "msg_show", kind = "", find = "written" },
-          view = "notify",
+          filter = { event = "notify", kind = { "info", "debug", "trace" } },
+          view = "mini",
         },
-      },
-      popupmenu = {
-        enabled = true,
-        backend = "nui",
       },
       lsp = {
         override = {
           ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
           ["vim.lsp.util.stylize_markdown"] = true,
-          ["cmp.entry.get_documentation"] = false,
         },
-        progress = { enabled = true },
-        hover = { enabled = true },
-        signature = { enabled = true },
-        message = { enabled = true },
       },
       presets = {
         bottom_search = true,
-        command_palette = false,
         long_message_to_split = true,
-        inc_rename = false,
         lsp_doc_border = true,
       },
       views = {

@@ -24,6 +24,8 @@ let
 
   baseSettings = {
     experimental-features = experimentalFeatures;
+    tarball-ttl = 604800;
+    narinfo-cache-negative-ttl = 60;
   }
   // lib.optionalAttrs (cfg.extraSubstituters != [ ]) {
     extra-substituters = cfg.extraSubstituters;

@@ -39,32 +39,25 @@ return {
   },
 
   {
-    "mason-org/mason-lspconfig.nvim",
-    opts = {},
-    dependencies = {
-      { "mason-org/mason.nvim", opts = {} },
-      "neovim/nvim-lspconfig",
+    "folke/lazydev.nvim",
+    ft = "lua",
+    opts = {
+      library = {
+        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+      },
     },
   },
 
   {
-    "neovim/nvim-lspconfig",
+    "lsp-setup",
+    dir = vim.fn.stdpath "config",
+    name = "lsp-setup",
+    lazy = false,
+    priority = 900,
+    dependencies = { "saghen/blink.cmp" },
     config = function()
-      require "configs.lspconfig"
+      require "configs.lsp"
     end,
-    dependencies = {
-      {
-        "folke/lazydev.nvim",
-        ft = "lua", -- only load on lua files
-        opts = {
-          library = {
-            -- See the configuration section for more details
-            -- Load luvit types when the `vim.uv` word is found
-            { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-          },
-        },
-      },
-    },
   },
 
   {
@@ -141,17 +134,6 @@ return {
 
   { "mbbill/undotree", lazy = false },
 
-  {
-    "nvimdev/lspsaga.nvim",
-    event = "LspAttach",
-    config = function()
-      require("lspsaga").setup {}
-    end,
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter", -- optional
-      "nvim-tree/nvim-web-devicons", -- optional
-    },
-  },
   { "mrjones2014/smart-splits.nvim", lazy = false },
 
   {

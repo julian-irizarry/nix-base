@@ -99,6 +99,26 @@
       '';
     };
 
+    vicinae = {
+      enableSessionizer = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Install the sessionizer vicinae extension. Disable to use vicinae
+          without the extension.
+        '';
+      };
+      codeRoots = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "$HOME/sources" ];
+        description = ''
+          Roots the sessionizer extension scans for project directories.
+          Rendered to ~/.config/vicinae/sessionizer-roots.json. Each entry
+          is a path; leading ~ is expanded by the extension at runtime.
+        '';
+      };
+    };
+
     font = {
       nerdFamily = lib.mkOption {
         type = lib.types.str;

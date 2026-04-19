@@ -109,9 +109,16 @@ map("v", "<leader>c", ":lua<CR>", { desc = "Execute selected lines" })
 
 map("n", "<C-q>", ":q<CR>", { desc = "Close neovim" })
 
+-- Quit
+map("n", "<leader>q", "<cmd>qa<CR>", { desc = "Quit all" })
+map("n", "<leader>Q", "<cmd>qa!<CR>", { desc = "Quit all (force)" })
+
+-- Clear search highlights
+map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlights" })
+
 -- Gitsigns hunk navigation
-map("n", "[c", "<cmd>Gitsigns next_hunk<CR>", { desc = "Next hunk" })
-map("n", "]c", "<cmd>Gitsigns prev_hunk<CR>", { desc = "Prev hunk" })
+map("n", "[c", "<cmd>Gitsigns prev_hunk<CR>", { desc = "Prev hunk" })
+map("n", "]c", "<cmd>Gitsigns next_hunk<CR>", { desc = "Next hunk" })
 
 local nomap = vim.keymap.del
 nomap("i", "<C-b>")

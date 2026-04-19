@@ -172,7 +172,18 @@ return {
   { "hrsh7th/cmp-nvim-lsp", enabled = false },
   { "L3MON4D3/LuaSnip", enabled = false },
   { "saadparwaiz1/cmp_luasnip", enabled = false },
-  { "windwp/nvim-autopairs", enabled = false },
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    opts = {
+      check_ts = true,
+      ts_config = {
+        lua = { "string" },
+        javascript = { "template_string" },
+        java = false,
+      },
+    },
+  },
 
   {
     "Bekaboo/dropbar.nvim",
@@ -194,5 +205,87 @@ return {
       },
     },
     opts = {},
+  },
+
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      { "<leader>ft", "<cmd>TodoFzfLua<CR>", desc = "Find TODO comments" },
+      {
+        "]t",
+        function()
+          require("todo-comments").jump_next()
+        end,
+        desc = "Next TODO comment",
+      },
+      {
+        "[t",
+        function()
+          require("todo-comments").jump_prev()
+        end,
+        desc = "Prev TODO comment",
+      },
+    },
+  },
+
+  {
+    "folke/noice.nvim",
+    event = "VeryLazy",
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "rcarriga/nvim-notify",
+    },
+    opts = {
+      cmdline = {
+        enabled = true,
+        view = "cmdline_popup",
+      },
+      messages = {
+        enabled = true,
+        view = "mini",
+        view_error = "mini",
+        view_warn = "mini",
+        view_history = "messages",
+        view_search = "virtualtext",
+      },
+      popupmenu = {
+        enabled = true,
+        backend = "nui",
+      },
+      lsp = {
+        override = {
+          ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
+          ["vim.lsp.util.stylize_markdown"] = true,
+          ["cmp.entry.get_documentation"] = false,
+        },
+        progress = { enabled = true },
+        hover = { enabled = true },
+        signature = { enabled = true },
+        message = { enabled = true },
+      },
+      presets = {
+        bottom_search = true,
+        command_palette = false,
+        long_message_to_split = true,
+        inc_rename = false,
+        lsp_doc_border = true,
+      },
+      views = {
+        cmdline_popup = {
+          position = { row = "95%", col = "50%" },
+          size = { width = 60, height = "auto" },
+          border = { style = "rounded" },
+        },
+        cmdline_popupmenu = {
+          relative = "editor",
+          position = { row = "85%", col = "50%" },
+          size = { width = 60, height = 10 },
+          border = { style = "rounded" },
+        },
+      },
+    },
   },
 }

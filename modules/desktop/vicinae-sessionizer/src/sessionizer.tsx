@@ -12,6 +12,7 @@ import { readdirSync } from "fs";
 import { getBackend, type TerminalBackend } from "./backends";
 import { loadConfig, type Config } from "./config";
 import { loadMode, saveMode, type Mode } from "./mode";
+import { log } from "./log";
 import { homedir } from "os";
 import { join, resolve } from "path";
 
@@ -109,15 +110,50 @@ export default function Sessionizer() {
   const { push, pop } = useNavigation();
 
   useEffect(() => {
+    log.info("sessionizer", "init", {
+      terminal: cfg.terminal,
+      roots: cfg.roots,
+      mode,
+    });
     getBackend(cfg.terminal).then(setBackend);
   }, [cfg.terminal]);
 
   const toggleMode = () => {
     const next: Mode = mode === "nvim" ? "shell" : "nvim";
+    log.info("sessionizer", "mode toggled", { from: mode, to: next });
     setMode(next);
     saveMode(next);
   };
   const cmd = mode === "nvim" ? ["nvim"] : [];
+
+  const run = async (
+    action: string,
+    successTitle: string,
+    fn: () => Promise<void>,
+  ) => {
+    if (!backend) {
+      log.warn("sessionizer", "action fired before backend ready", { action });
+      return;
+    }
+    const start = Date.now();
+    log.info("sessionizer", "action start", { action, mode });
+    try {
+      await fn();
+      log.info("sessionizer", "action ok", { action, ms: Date.now() - start });
+      await showToast({ title: successTitle, style: Toast.Style.Success });
+    } catch (err) {
+      log.error("sessionizer", "action failed", {
+        action,
+        ms: Date.now() - start,
+        err: String(err),
+      });
+      await showToast({
+        title: `${action} failed`,
+        message: String(err),
+        style: Toast.Style.Failure,
+      });
+    }
+  };
 
   const entries = useMemo(() => {
     if (!activeRoot) return [];
@@ -180,85 +216,43 @@ export default function Sessionizer() {
                 <Action
                   title="Open"
                   icon={Icon.Terminal}
-                  onAction={async () => {
-                    if (!backend) return;
-                    try {
-                      await backend.openSession(e.name, e.path, cmd);
-                      await showToast({
-                        title: `Opened ${e.name}`,
-                        style: Toast.Style.Success,
-                      });
-                    } catch (err) {
-                      await showToast({
-                        title: "Error",
-                        message: String(err),
-                        style: Toast.Style.Failure,
-                      });
-                    }
-                  }}
+                  onAction={() =>
+                    run("Open", `Opened ${e.name}`, () =>
+                      backend!.openSession(e.name, e.path, cmd),
+                    )
+                  }
                 />
                 <Action
                   title="Add Tab to Current"
                   icon={Icon.PlusSquare}
                   shortcut={{ modifiers: ["cmd"], key: "return" }}
-                  onAction={async () => {
-                    if (!backend) return;
-                    try {
-                      await backend.addTabToCurrent(e.path, cmd);
-                      await showToast({
-                        title: `Added tab: ${e.name}`,
-                        style: Toast.Style.Success,
-                      });
-                    } catch (err) {
-                      await showToast({
-                        title: "Error",
-                        message: String(err),
-                        style: Toast.Style.Failure,
-                      });
-                    }
-                  }}
+                  onAction={() =>
+                    run("Add Tab", `Added tab: ${e.name}`, () =>
+                      backend!.addTabToCurrent(e.path, cmd),
+                    )
+                  }
                 />
                 <Action
                   title="Add Pane to Current"
                   icon={Icon.AppWindowSidebarRight}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
-                  onAction={async () => {
-                    if (!backend) return;
-                    try {
-                      await backend.addPaneToCurrent(e.path, cmd);
-                      await showToast({
-                        title: `Added pane: ${e.name}`,
-                        style: Toast.Style.Success,
-                      });
-                    } catch (err) {
-                      await showToast({
-                        title: "Error",
-                        message: String(err),
-                        style: Toast.Style.Failure,
-                      });
-                    }
-                  }}
+                  onAction={() =>
+                    run("Add Pane", `Added pane: ${e.name}`, () =>
+                      backend!.addPaneToCurrent(e.path, cmd),
+                    )
+                  }
                 />
                 <Action
                   title="Open in New Workspace"
                   icon={Icon.AppWindowList}
                   shortcut={{ modifiers: ["opt"], key: "return" }}
-                  onAction={async () => {
-                    if (!backend) return;
-                    try {
-                      await backend.openInNewWorkspace(e.name, e.path, cmd);
-                      await showToast({
-                        title: `New workspace: ${e.name}`,
-                        style: Toast.Style.Success,
-                      });
-                    } catch (err) {
-                      await showToast({
-                        title: "Error",
-                        message: String(err),
-                        style: Toast.Style.Failure,
-                      });
-                    }
-                  }}
+                  onAction={() =>
+                    run(
+                      "Open in New Workspace",
+                      `New workspace: ${e.name}`,
+                      () => backend!.openInNewWorkspace(e.name, e.path, cmd),
+                    )
+                  }
                 />
                 <Action
                   title={

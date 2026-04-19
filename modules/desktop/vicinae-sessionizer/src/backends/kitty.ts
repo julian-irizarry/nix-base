@@ -1,5 +1,6 @@
-import { execFileSync, spawn } from "child_process";
 import { basename } from "path";
+import { runAsync, runDetached, runSync } from "../exec";
+import { log } from "../log";
 import type { TerminalBackend, OpenProject } from "./index";
 
 interface KittyWindow {
@@ -23,22 +24,13 @@ interface KittyOsWindow {
 
 const KITTY_SOCKET = "unix:/tmp/kitty";
 
-function kittenJson<T>(args: string[]): T {
-  const out = execFileSync("kitten", ["@", "--to", KITTY_SOCKET, ...args], {
-    encoding: "utf8",
-  });
-  return JSON.parse(out) as T;
-}
-
-function kitten(args: string[]): void {
-  execFileSync("kitten", ["@", "--to", KITTY_SOCKET, ...args], {
-    stdio: "ignore",
-  });
+function kittenArgs(rest: string[]): string[] {
+  return ["@", "--to", KITTY_SOCKET, ...rest];
 }
 
 function focusTabByTitle(title: string): boolean {
   try {
-    kitten(["focus-tab", "--match", `title:${title}`]);
+    runSync("kitten", kittenArgs(["focus-tab", "--match", `title:${title}`]));
     return true;
   } catch {
     return false;
@@ -46,53 +38,59 @@ function focusTabByTitle(title: string): boolean {
 }
 
 function launchTab(title: string, cwd: string, cmd: string[]): void {
-  const args = [
-    "@",
-    "--to",
-    KITTY_SOCKET,
-    "launch",
-    "--type=tab",
-    `--title=${title}`,
-    `--cwd=${cwd}`,
-    ...cmd,
-  ];
-  spawn("kitten", args, { detached: true, stdio: "ignore" }).unref();
+  runDetached(
+    "kitten",
+    kittenArgs([
+      "launch",
+      "--type=tab",
+      `--title=${title}`,
+      `--cwd=${cwd}`,
+      ...cmd,
+    ]),
+  );
 }
 
 export class KittyBackend implements TerminalBackend {
   async openSession(sessionId: string, cwd: string, cmd: string[] = []) {
-    if (focusTabByTitle(sessionId)) return;
+    if (focusTabByTitle(sessionId)) {
+      log.info("kitty", "focused existing tab", { sessionId });
+      return;
+    }
+    log.info("kitty", "launching tab", { sessionId, cwd });
     launchTab(sessionId, cwd, cmd);
   }
 
   async addTabToCurrent(cwd: string, cmd: string[] = []) {
+    log.info("kitty", "adding tab", { cwd });
     launchTab(basename(cwd), cwd, cmd);
   }
 
   async addPaneToCurrent(cwd: string, cmd: string[] = []) {
-    spawn(
+    log.info("kitty", "splitting current window", { cwd });
+    runDetached(
       "kitten",
-      [
-        "@",
-        "--to",
-        KITTY_SOCKET,
+      kittenArgs([
         "launch",
         "--type=window",
         "--location=vsplit",
         `--cwd=${cwd}`,
         ...cmd,
-      ],
-      { detached: true, stdio: "ignore" },
-    ).unref();
+      ]),
+    );
   }
 
   async openInNewWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
-    // Kitty has no workspaces — behave like addTabToCurrent with explicit title.
+    log.info("kitty", "launching tab (no native workspace concept)", {
+      sessionId,
+      cwd,
+    });
     launchTab(sessionId, cwd, cmd);
   }
 
   async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
-    const osWindows = kittenJson<KittyOsWindow[]>(["ls"]);
+    const osWindows: KittyOsWindow[] = JSON.parse(
+      await runAsync("kitten", kittenArgs(["ls"])),
+    );
     const resolvedRoots = roots.map((r) => r.replace(/\/$/, ""));
     const underRoot = (cwd: string) =>
       resolvedRoots.some((r) => cwd === r || cwd.startsWith(r + "/"));

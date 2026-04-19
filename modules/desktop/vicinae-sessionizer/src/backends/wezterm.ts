@@ -1,11 +1,14 @@
-import { execFileSync, spawn } from "child_process";
-import { basename } from "path";
+import { basename, join } from "path";
+import { readdirSync, statSync } from "fs";
+import { CommandError, runAsync, runDetached } from "../exec";
+import { log } from "../log";
 import type { TerminalBackend, OpenProject } from "./index";
 
 interface WzClient {
   focused_workspace: string;
-  active_pane_id: number;
-  activity_time_stamp: string; // ISO; pick latest
+  focused_pane_id: number;
+  focused_tab_id: number;
+  activity_time_stamp: string;
 }
 
 interface WzPane {
@@ -14,35 +17,103 @@ interface WzPane {
   window_id: number;
   workspace: string;
   title: string;
-  cwd: string; // file:// URL
+  cwd: string;
 }
 
-function wzJson<T>(args: string[]): T {
-  const out = execFileSync("wezterm", ["cli", ...args, "--format", "json"], {
-    encoding: "utf8",
-  });
-  return JSON.parse(out) as T;
+interface Anchor {
+  paneId: number;
+  workspace: string;
 }
 
-function wzList(): WzPane[] {
-  return wzJson<WzPane[]>(["list"]);
-}
-
-function wzClients(): WzClient[] {
+// vicinae inherits a display env (WAYLAND_DISPLAY etc.) that may or may not
+// match what wezterm GUI is using. Rather than trust the auto-discovered
+// symlinks — which can dangle when a wezterm crashes — we pick the live
+// gui-sock-<pid> directly from /run/user/$UID/wezterm and pass it via
+// WEZTERM_UNIX_SOCKET. This pins every cli call to the actual running GUI.
+function findGuiSocket(): string | null {
+  const uid = typeof process.getuid === "function" ? process.getuid() : null;
+  if (uid === null) return null;
+  const dir = `/run/user/${uid}/wezterm`;
+  let entries: string[];
   try {
-    return wzJson<WzClient[]>(["list-clients"]);
+    entries = readdirSync(dir);
   } catch {
+    return null;
+  }
+  for (const name of entries) {
+    if (!name.startsWith("gui-sock-")) continue;
+    const full = join(dir, name);
+    try {
+      const st = statSync(full);
+      if (st.isSocket()) {
+        const pid = Number(name.slice("gui-sock-".length));
+        if (Number.isFinite(pid) && isProcessAlive(pid)) return full;
+      }
+    } catch {
+      // socket vanished between readdir and stat; ignore
+    }
+  }
+  return null;
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function cliEnv(): NodeJS.ProcessEnv {
+  const base = { ...process.env };
+  const sock = findGuiSocket();
+  if (sock) {
+    base.WEZTERM_UNIX_SOCKET = sock;
+    log.debug("wezterm", "pinned GUI socket", { sock });
+  } else {
+    log.debug("wezterm", "no live GUI socket; letting wezterm auto-discover");
+  }
+  return base;
+}
+
+function isMuxDown(err: unknown): boolean {
+  if (!(err instanceof CommandError)) return false;
+  return /failed to connect|No such file or directory/i.test(err.stderr);
+}
+
+async function wzList(): Promise<WzPane[]> {
+  return JSON.parse(
+    await runAsync("wezterm", ["cli", "list", "--format", "json"], {
+      env: cliEnv(),
+    }),
+  );
+}
+
+async function wzClients(): Promise<WzClient[]> {
+  try {
+    return JSON.parse(
+      await runAsync("wezterm", ["cli", "list-clients", "--format", "json"], {
+        env: cliEnv(),
+      }),
+    );
+  } catch (err) {
+    log.warn("wezterm", "list-clients failed", { err: String(err) });
     return [];
   }
 }
 
-function focusedWorkspace(): string | null {
-  const clients = wzClients();
+async function currentAnchor(): Promise<Anchor | null> {
+  const clients = await wzClients();
   if (clients.length === 0) return null;
   const latest = clients.reduce((a, b) =>
     a.activity_time_stamp > b.activity_time_stamp ? a : b,
   );
-  return latest.focused_workspace || null;
+  if (!Number.isFinite(latest.focused_pane_id)) return null;
+  return {
+    paneId: latest.focused_pane_id,
+    workspace: latest.focused_workspace || "",
+  };
 }
 
 function uniqueWorkspaceName(base: string, existing: Set<string>): string {
@@ -53,93 +124,144 @@ function uniqueWorkspaceName(base: string, existing: Set<string>): string {
   }
 }
 
+function cmdTail(cmd: string[]): string[] {
+  return cmd.length > 0 ? ["--", ...cmd] : [];
+}
+
+// Boot a GUI + mux and land in the named workspace/cwd. Used only when no
+// wezterm GUI is running at all.
+function startGui(workspace: string, cwd: string, cmd: string[]): void {
+  log.info("wezterm", "starting GUI (no live socket found)", {
+    workspace,
+    cwd,
+  });
+  runDetached("wezterm", [
+    "start",
+    "--workspace",
+    workspace,
+    "--cwd",
+    cwd,
+    ...cmdTail(cmd),
+  ]);
+}
+
+function wzRun(args: string[]): Promise<string> {
+  return runAsync("wezterm", args, { env: cliEnv() });
+}
+
 export class WeztermBackend implements TerminalBackend {
   async openSession(sessionId: string, cwd: string, cmd: string[] = []) {
-    const panes = wzList();
-    const match = panes.find((p) => p.workspace === sessionId);
-    if (match) {
-      execFileSync("wezterm", [
-        "cli",
-        "activate-pane",
-        "--pane-id",
-        String(match.pane_id),
-      ]);
+    if (!findGuiSocket()) {
+      startGui(sessionId, cwd, cmd);
       return;
     }
-    spawn(
-      "wezterm",
-      [
-        "cli",
-        "spawn",
-        "--workspace",
+    let panes: WzPane[];
+    try {
+      panes = await wzList();
+    } catch (err) {
+      if (isMuxDown(err)) {
+        startGui(sessionId, cwd, cmd);
+        return;
+      }
+      throw err;
+    }
+    const match = panes.find((p) => p.workspace === sessionId);
+    if (match) {
+      log.info("wezterm", "focusing existing workspace", {
         sessionId,
-        "--cwd",
-        cwd,
-        ...(cmd.length > 0 ? ["--", ...cmd] : []),
-      ],
-      { detached: true, stdio: "ignore" },
-    ).unref();
+        paneId: match.pane_id,
+      });
+      await wzRun(["cli", "activate-pane", "--pane-id", String(match.pane_id)]);
+      return;
+    }
+    const anchor = await currentAnchor();
+    const args = ["cli", "spawn", "--workspace", sessionId, "--cwd", cwd];
+    if (anchor) args.push("--pane-id", String(anchor.paneId));
+    log.info("wezterm", "spawning workspace tab", { sessionId, anchor });
+    await wzRun([...args, ...cmdTail(cmd)]);
   }
 
   async addTabToCurrent(cwd: string, cmd: string[] = []) {
-    const ws = focusedWorkspace();
-    if (!ws) {
+    if (!findGuiSocket()) {
+      startGui(basename(cwd) || "scratch", cwd, cmd);
+      return;
+    }
+    const anchor = await currentAnchor();
+    if (!anchor) {
+      log.info("wezterm", "no focused pane; falling back to new workspace");
       return this.openInNewWorkspace(basename(cwd) || "scratch", cwd, cmd);
     }
-    spawn(
-      "wezterm",
-      [
-        "cli",
-        "spawn",
-        "--workspace",
-        ws,
-        "--cwd",
-        cwd,
-        ...(cmd.length > 0 ? ["--", ...cmd] : []),
-      ],
-      { detached: true, stdio: "ignore" },
-    ).unref();
+    log.info("wezterm", "adding tab anchored to current pane", { anchor, cwd });
+    await wzRun([
+      "cli",
+      "spawn",
+      "--pane-id",
+      String(anchor.paneId),
+      "--cwd",
+      cwd,
+      ...cmdTail(cmd),
+    ]);
   }
 
   async addPaneToCurrent(cwd: string, cmd: string[] = []) {
-    spawn(
-      "wezterm",
-      [
-        "cli",
-        "split-pane",
-        "--right",
-        "--cwd",
-        cwd,
-        ...(cmd.length > 0 ? ["--", ...cmd] : []),
-      ],
-      { detached: true, stdio: "ignore" },
-    ).unref();
+    if (!findGuiSocket()) {
+      startGui(basename(cwd) || "scratch", cwd, cmd);
+      return;
+    }
+    const anchor = await currentAnchor();
+    if (!anchor) {
+      log.info(
+        "wezterm",
+        "no focused pane; pane split needs target — using new workspace",
+      );
+      return this.openInNewWorkspace(basename(cwd) || "scratch", cwd, cmd);
+    }
+    log.info("wezterm", "splitting focused pane", { anchor, cwd });
+    await wzRun([
+      "cli",
+      "split-pane",
+      "--pane-id",
+      String(anchor.paneId),
+      "--right",
+      "--cwd",
+      cwd,
+      ...cmdTail(cmd),
+    ]);
   }
 
   async openInNewWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
-    const panes = wzList();
-    const existing = new Set(panes.map((p) => p.workspace));
+    if (!findGuiSocket()) {
+      startGui(sessionId, cwd, cmd);
+      return;
+    }
+    const existing = new Set((await wzList()).map((p) => p.workspace));
     const name = uniqueWorkspaceName(sessionId, existing);
-    spawn(
-      "wezterm",
-      [
-        "cli",
-        "spawn",
-        "--workspace",
-        name,
-        "--cwd",
-        cwd,
-        ...(cmd.length > 0 ? ["--", ...cmd] : []),
-      ],
-      { detached: true, stdio: "ignore" },
-    ).unref();
+    // Anchor to the current pane so the new workspace appears in the existing
+    // window rather than spawning a second one.
+    const anchor = await currentAnchor();
+    const args = ["cli", "spawn", "--workspace", name, "--cwd", cwd];
+    if (anchor) args.push("--pane-id", String(anchor.paneId));
+    log.info("wezterm", "spawning new workspace", { name, cwd, anchor });
+    await wzRun([...args, ...cmdTail(cmd)]);
   }
 
   async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
-    const panes = wzList();
+    if (!findGuiSocket()) {
+      log.info("wezterm", "no GUI running; returning empty project list");
+      return [];
+    }
+    let panes: WzPane[];
+    try {
+      panes = await wzList();
+    } catch (err) {
+      if (isMuxDown(err)) {
+        log.info("wezterm", "mux unreachable; returning empty project list");
+        return [];
+      }
+      throw err;
+    }
     const resolvedRoots = roots.map((r) => r.replace(/\/$/, ""));
     const cwdFor = (p: WzPane): string => {
-      // wezterm returns cwd as file://host/path; strip the prefix
       const m = p.cwd.match(/^file:\/\/[^/]*(\/.*)$/);
       return m ? m[1] : p.cwd;
     };

@@ -7,14 +7,12 @@ import {
   showToast,
   Toast,
 } from "@vicinae/api";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { basename } from "path";
 import { homedir } from "os";
 import { loadConfig } from "./config";
 import { getBackend, type TerminalBackend, type OpenProject } from "./backends";
-
-const execFileAsync = promisify(execFile);
+import { runAsync } from "./exec";
+import { log } from "./log";
 
 export default function FindOpenProject() {
   const [cfg] = useState(() => loadConfig());
@@ -23,11 +21,18 @@ export default function FindOpenProject() {
 
   useEffect(() => {
     (async () => {
+      log.info("find-open", "init", {
+        terminal: cfg.terminal,
+        roots: cfg.roots,
+      });
       const b = await getBackend(cfg.terminal);
       setBackend(b);
       try {
-        setItems(await b.listOpenProjects(cfg.roots));
+        const projects = await b.listOpenProjects(cfg.roots);
+        log.info("find-open", "listed", { count: projects.length });
+        setItems(projects);
       } catch (err) {
+        log.error("find-open", "listOpenProjects threw", { err: String(err) });
         await showToast({
           title: "Could not list open projects",
           message: String(err),
@@ -39,16 +44,21 @@ export default function FindOpenProject() {
 
   const focus = async (p: OpenProject) => {
     if (!backend) return;
+    log.info("find-open", "focus", {
+      terminal: cfg.terminal,
+      clientId: p.clientId,
+      cwd: p.cwd,
+    });
     try {
       if (cfg.terminal === "wezterm" && p.clientId) {
-        await execFileAsync("wezterm", [
+        await runAsync("wezterm", [
           "cli",
           "activate-pane",
           "--pane-id",
           p.clientId,
         ]);
       } else if (cfg.terminal === "kitty" && p.clientId) {
-        await execFileAsync("kitten", [
+        await runAsync("kitten", [
           "@",
           "--to",
           "unix:/tmp/kitty",

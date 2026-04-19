@@ -6,10 +6,10 @@
       "newline": false,
       "segments": [
         {
-          "type": "text",
+          "type": "nix-shell",
           "style": "plain",
           "foreground": "#FFFFFF",
-          "template": "{{ if .Env.IN_NIX_SHELL }}(nix) {{ end }}"
+          "template": "{{ if ne .Type \"unknown\" }}(nix) {{ end }}"
         },
         {
           "type": "python",
@@ -43,10 +43,10 @@
           "type": "path"
         },
         {
-          "type": "text",
+          "type": "nix-shell",
           "style": "plain",
           "foreground": "#003fff",
-          "template": "{{ if .Env.IN_NIX_SHELL }}[nix:{{ .Env.IN_NIX_SHELL }}] {{ end }}"
+          "template": "{{ if ne .Type \"unknown\" }}[nix:{{ .Type }}] {{ end }}"
         },
         {
           "foreground": "#A9FFB4",

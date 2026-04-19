@@ -82,7 +82,7 @@ in
 
     shellAliases = {
       vim = "nvim";
-      nd = "nix develop -vvv -c $SHELL";
+      nd = "nix develop -vvv";
       ls = "eza -a --icons=always";
       ll = "eza -lhag --icons=always";
       cat = "bat";

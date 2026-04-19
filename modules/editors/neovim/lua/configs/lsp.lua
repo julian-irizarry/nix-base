@@ -2,14 +2,12 @@
 -- Server-specific config lives under ../../lsp/<name>.lua and is loaded by
 -- vim.lsp.enable().
 
--- Bridge blink.cmp capabilities into every server. Guarded so this file
--- can be sourced even if blink.cmp hasn't loaded yet.
-local ok, blink = pcall(require, "blink.cmp")
-if ok then
-  vim.lsp.config("*", {
-    capabilities = blink.get_lsp_capabilities(),
-  })
-end
+-- Bridge blink.cmp capabilities into every server.
+-- blink.cmp is declared as a dependency of the lazy hook that loads this
+-- file (see plugins/init.lua), so it is guaranteed loaded by this point.
+vim.lsp.config("*", {
+  capabilities = require("blink.cmp").get_lsp_capabilities(),
+})
 
 vim.lsp.enable {
   "nixd",

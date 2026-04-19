@@ -16,5 +16,7 @@
     ./dev/vscode.nix
     ./shell/zsh.nix
     ./shell/prompt.nix
+    ./platform/linux.nix
+    ./platform/darwin.nix
   ];
 }

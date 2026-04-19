@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   programs.bat.enable = true;
@@ -6,6 +11,7 @@
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+    config.whitelist.prefix = [ "${config.home.homeDirectory}/sources" ];
   };
   programs.fzf = {
     enable = true;

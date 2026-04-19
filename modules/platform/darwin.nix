@@ -1,7 +1,6 @@
 { lib, pkgs, ... }:
 
 lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
-  programs.ssh.matchBlocks."*".extraOptions = {
-    IdentityAgent = "\"~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock\"";
-  };
+  # Placeholder. Darwin-specific wiring will land here (e.g. 1Password
+  # SSH agent IdentityAgent path once we configure 1Password).
 }

@@ -6,10 +6,6 @@
 }:
 
 lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-  programs.ssh.matchBlocks."*".extraOptions = {
-    IdentityAgent = "~/.1password/agent.sock";
-  };
-
   home.activation.make-zsh-default-shell = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     PATH="/usr/bin:/bin:$PATH"
     ZSH_PATH="${config.home.profileDirectory}/bin/zsh"

@@ -6,10 +6,9 @@ export interface OpenProject {
 }
 
 export interface TerminalBackend {
-  openSession(sessionId: string, cwd: string, cmd?: string[]): Promise<void>;
-  addTabToCurrent(cwd: string, cmd?: string[]): Promise<void>;
-  addPaneToCurrent(cwd: string, cmd?: string[]): Promise<void>;
-  openInNewWorkspace(
+  addTabToFocused(cwd: string, cmd?: string[]): Promise<void>;
+  addPaneToFocused(cwd: string, cmd?: string[]): Promise<void>;
+  createWorkspace(
     sessionId: string,
     cwd: string,
     cmd?: string[],

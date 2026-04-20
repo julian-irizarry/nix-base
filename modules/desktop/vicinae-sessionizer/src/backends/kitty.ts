@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { runAsync, runDetached, runSync } from "../exec";
+import { runAsync, runDetached } from "../exec";
 import { log } from "../log";
 import type { TerminalBackend, OpenProject } from "./index";
 
@@ -28,15 +28,6 @@ function kittenArgs(rest: string[]): string[] {
   return ["@", "--to", KITTY_SOCKET, ...rest];
 }
 
-function focusTabByTitle(title: string): boolean {
-  try {
-    runSync("kitten", kittenArgs(["focus-tab", "--match", `title:${title}`]));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function launchTab(title: string, cwd: string, cmd: string[]): void {
   runDetached(
     "kitten",
@@ -51,21 +42,12 @@ function launchTab(title: string, cwd: string, cmd: string[]): void {
 }
 
 export class KittyBackend implements TerminalBackend {
-  async openSession(sessionId: string, cwd: string, cmd: string[] = []) {
-    if (focusTabByTitle(sessionId)) {
-      log.info("kitty", "focused existing tab", { sessionId });
-      return;
-    }
-    log.info("kitty", "launching tab", { sessionId, cwd });
-    launchTab(sessionId, cwd, cmd);
-  }
-
-  async addTabToCurrent(cwd: string, cmd: string[] = []) {
+  async addTabToFocused(cwd: string, cmd: string[] = []) {
     log.info("kitty", "adding tab", { cwd });
     launchTab(basename(cwd), cwd, cmd);
   }
 
-  async addPaneToCurrent(cwd: string, cmd: string[] = []) {
+  async addPaneToFocused(cwd: string, cmd: string[] = []) {
     log.info("kitty", "splitting current window", { cwd });
     runDetached(
       "kitten",
@@ -79,7 +61,7 @@ export class KittyBackend implements TerminalBackend {
     );
   }
 
-  async openInNewWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
+  async createWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
     log.info("kitty", "launching tab (no native workspace concept)", {
       sessionId,
       cwd,

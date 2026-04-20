@@ -14,6 +14,7 @@
     "*.ico"
     "LICENSE"
     "**/.undodir/**"
+    "**/node_modules/**"
   ];
 
   # omp.json uses nonstandard formatting; leave it alone.

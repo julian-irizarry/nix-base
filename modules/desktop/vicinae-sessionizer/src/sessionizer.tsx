@@ -7,6 +7,7 @@ import {
   useNavigation,
   showToast,
   Toast,
+  closeMainWindow,
 } from "@vicinae/api";
 import { readdirSync } from "fs";
 import { getBackend, type TerminalBackend } from "./backends";
@@ -124,13 +125,10 @@ export default function Sessionizer() {
     setMode(next);
     saveMode(next);
   };
-  const cmd = mode === "nvim" ? ["nvim"] : [];
+  const shell = process.env.SHELL ?? "/bin/sh";
+  const cmd = mode === "nvim" ? [shell, "-lc", `nvim; exec ${shell} -l`] : [];
 
-  const run = async (
-    action: string,
-    successTitle: string,
-    fn: () => Promise<void>,
-  ) => {
+  const run = async (action: string, fn: () => Promise<void>) => {
     if (!backend) {
       log.warn("sessionizer", "action fired before backend ready", { action });
       return;
@@ -140,7 +138,7 @@ export default function Sessionizer() {
     try {
       await fn();
       log.info("sessionizer", "action ok", { action, ms: Date.now() - start });
-      await showToast({ title: successTitle, style: Toast.Style.Success });
+      await closeMainWindow();
     } catch (err) {
       log.error("sessionizer", "action failed", {
         action,
@@ -214,43 +212,29 @@ export default function Sessionizer() {
             actions={
               <ActionPanel>
                 <Action
-                  title="Open"
+                  title="Add Tab"
                   icon={Icon.Terminal}
                   onAction={() =>
-                    run("Open", `Opened ${e.name}`, () =>
-                      backend!.openSession(e.name, e.path, cmd),
-                    )
+                    run("Add Tab", () => backend!.addTabToFocused(e.path, cmd))
                   }
                 />
                 <Action
-                  title="Add Tab to Current"
-                  icon={Icon.PlusSquare}
-                  shortcut={{ modifiers: ["cmd"], key: "return" }}
-                  onAction={() =>
-                    run("Add Tab", `Added tab: ${e.name}`, () =>
-                      backend!.addTabToCurrent(e.path, cmd),
-                    )
-                  }
-                />
-                <Action
-                  title="Add Pane to Current"
+                  title="Add Pane"
                   icon={Icon.AppWindowSidebarRight}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "return" }}
+                  shortcut={{ modifiers: ["shift"], key: "return" }}
                   onAction={() =>
-                    run("Add Pane", `Added pane: ${e.name}`, () =>
-                      backend!.addPaneToCurrent(e.path, cmd),
+                    run("Add Pane", () =>
+                      backend!.addPaneToFocused(e.path, cmd),
                     )
                   }
                 />
                 <Action
-                  title="Open in New Workspace"
+                  title="New Workspace"
                   icon={Icon.AppWindowList}
-                  shortcut={{ modifiers: ["opt"], key: "return" }}
+                  shortcut={{ modifiers: ["ctrl", "shift"], key: "return" }}
                   onAction={() =>
-                    run(
-                      "Open in New Workspace",
-                      `New workspace: ${e.name}`,
-                      () => backend!.openInNewWorkspace(e.name, e.path, cmd),
+                    run("New Workspace", () =>
+                      backend!.createWorkspace(e.name, e.path, cmd),
                     )
                   }
                 />
@@ -261,7 +245,7 @@ export default function Sessionizer() {
                       : "Switch to Nvim Mode"
                   }
                   icon={Icon.Gear}
-                  shortcut={{ modifiers: ["cmd"], key: "e" }}
+                  shortcut={{ modifiers: ["ctrl"], key: "e" }}
                   onAction={toggleMode}
                 />
                 <Action.CopyToClipboard

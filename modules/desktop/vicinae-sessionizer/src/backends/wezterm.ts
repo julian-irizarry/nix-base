@@ -149,49 +149,33 @@ function wzRun(args: string[]): Promise<string> {
   return runAsync("wezterm", args, { env: cliEnv() });
 }
 
-export class WeztermBackend implements TerminalBackend {
-  async openSession(sessionId: string, cwd: string, cmd: string[] = []) {
-    if (!findGuiSocket()) {
-      startGui(sessionId, cwd, cmd);
-      return;
-    }
-    let panes: WzPane[];
-    try {
-      panes = await wzList();
-    } catch (err) {
-      if (isMuxDown(err)) {
-        startGui(sessionId, cwd, cmd);
-        return;
-      }
-      throw err;
-    }
-    const match = panes.find((p) => p.workspace === sessionId);
-    if (match) {
-      log.info("wezterm", "focusing existing workspace", {
-        sessionId,
-        paneId: match.pane_id,
-      });
-      await wzRun(["cli", "activate-pane", "--pane-id", String(match.pane_id)]);
-      return;
-    }
-    const anchor = await currentAnchor();
-    const args = ["cli", "spawn", "--workspace", sessionId, "--cwd", cwd];
-    if (anchor) args.push("--pane-id", String(anchor.paneId));
-    log.info("wezterm", "spawning workspace tab", { sessionId, anchor });
-    await wzRun([...args, ...cmdTail(cmd)]);
-  }
+function parsePaneId(stdout: string): number | null {
+  const line = stdout.trim().split(/\r?\n/).pop() ?? "";
+  if (line === "") return null;
+  const n = Number(line);
+  return Number.isFinite(n) ? n : null;
+}
 
-  async addTabToCurrent(cwd: string, cmd: string[] = []) {
+export class WeztermBackend implements TerminalBackend {
+  async addTabToFocused(cwd: string, cmd: string[] = []) {
     if (!findGuiSocket()) {
+      // First-run launcher path: no wezterm running at all.
+      log.info("wezterm", "no GUI running; launching as first workspace", {
+        cwd,
+      });
       startGui(basename(cwd) || "scratch", cwd, cmd);
       return;
     }
     const anchor = await currentAnchor();
     if (!anchor) {
-      log.info("wezterm", "no focused pane; falling back to new workspace");
-      return this.openInNewWorkspace(basename(cwd) || "scratch", cwd, cmd);
+      log.info(
+        "wezterm",
+        "mux alive but no focused pane; falling through to createWorkspace",
+        { cwd },
+      );
+      return this.createWorkspace(basename(cwd) || "scratch", cwd, cmd);
     }
-    log.info("wezterm", "adding tab anchored to current pane", { anchor, cwd });
+    log.info("wezterm", "adding tab to focused pane's window", { anchor, cwd });
     await wzRun([
       "cli",
       "spawn",
@@ -203,8 +187,13 @@ export class WeztermBackend implements TerminalBackend {
     ]);
   }
 
-  async addPaneToCurrent(cwd: string, cmd: string[] = []) {
+  async addPaneToFocused(cwd: string, cmd: string[] = []) {
     if (!findGuiSocket()) {
+      log.info(
+        "wezterm",
+        "no GUI running; launching as first workspace (pane fallback)",
+        { cwd },
+      );
       startGui(basename(cwd) || "scratch", cwd, cmd);
       return;
     }
@@ -212,9 +201,10 @@ export class WeztermBackend implements TerminalBackend {
     if (!anchor) {
       log.info(
         "wezterm",
-        "no focused pane; pane split needs target — using new workspace",
+        "mux alive but no focused pane; falling through to createWorkspace",
+        { cwd },
       );
-      return this.openInNewWorkspace(basename(cwd) || "scratch", cwd, cmd);
+      return this.createWorkspace(basename(cwd) || "scratch", cwd, cmd);
     }
     log.info("wezterm", "splitting focused pane", { anchor, cwd });
     await wzRun([
@@ -229,20 +219,39 @@ export class WeztermBackend implements TerminalBackend {
     ]);
   }
 
-  async openInNewWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
+  async createWorkspace(sessionId: string, cwd: string, cmd: string[] = []) {
     if (!findGuiSocket()) {
+      log.info("wezterm", "no GUI running; starting with workspace", {
+        sessionId,
+      });
       startGui(sessionId, cwd, cmd);
       return;
     }
     const existing = new Set((await wzList()).map((p) => p.workspace));
     const name = uniqueWorkspaceName(sessionId, existing);
-    // Anchor to the current pane so the new workspace appears in the existing
-    // window rather than spawning a second one.
-    const anchor = await currentAnchor();
-    const args = ["cli", "spawn", "--workspace", name, "--cwd", cwd];
-    if (anchor) args.push("--pane-id", String(anchor.paneId));
-    log.info("wezterm", "spawning new workspace", { name, cwd, anchor });
-    await wzRun([...args, ...cmdTail(cmd)]);
+    log.info("wezterm", "spawning new workspace in new window", { name, cwd });
+    // --new-window is required when --workspace is passed without --pane-id.
+    // --pane-id is incompatible with --new-window; we anchor by activating the
+    // returned pane in a follow-up call instead.
+    const stdout = await wzRun([
+      "cli",
+      "spawn",
+      "--workspace",
+      name,
+      "--new-window",
+      "--cwd",
+      cwd,
+      ...cmdTail(cmd),
+    ]);
+    const newPaneId = parsePaneId(stdout);
+    if (newPaneId !== null) {
+      log.info("wezterm", "focusing new workspace pane", { paneId: newPaneId });
+      await wzRun(["cli", "activate-pane", "--pane-id", String(newPaneId)]);
+    } else {
+      log.warn("wezterm", "could not parse spawn stdout for new pane id", {
+        stdout,
+      });
+    }
   }
 
   async listOpenProjects(roots: string[]): Promise<OpenProject[]> {

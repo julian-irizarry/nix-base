@@ -6,6 +6,7 @@ import {
   List,
   showToast,
   Toast,
+  closeMainWindow,
 } from "@vicinae/api";
 import { basename } from "path";
 import { homedir } from "os";
@@ -67,6 +68,7 @@ export default function FindOpenProject() {
           `id:${p.clientId}`,
         ]);
       }
+      await closeMainWindow();
     } catch (err) {
       await showToast({
         title: "Focus failed",

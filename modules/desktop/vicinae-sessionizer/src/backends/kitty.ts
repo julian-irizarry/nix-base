@@ -1,26 +1,7 @@
 import { basename } from "path";
-import { runAsync, runDetached } from "../exec";
+import { runDetached } from "../exec";
 import { log } from "../log";
-import type { TerminalBackend, OpenProject } from "./index";
-
-interface KittyWindow {
-  id: number;
-  cwd: string;
-  title: string;
-}
-
-interface KittyTab {
-  id: number;
-  title: string;
-  is_active: boolean;
-  windows: KittyWindow[];
-}
-
-interface KittyOsWindow {
-  id: number;
-  is_focused: boolean;
-  tabs: KittyTab[];
-}
+import type { TerminalBackend, OpenSession } from "./index";
 
 const KITTY_SOCKET = "unix:/tmp/kitty";
 
@@ -69,43 +50,14 @@ export class KittyBackend implements TerminalBackend {
     launchTab(sessionId, cwd, cmd);
   }
 
-  async focusProject(project: OpenProject): Promise<void> {
-    if (!project.clientId) {
-      throw new Error("kitty focusProject: project has no clientId");
-    }
-    log.info("kitty", "focusing tab", { tabId: project.clientId });
-    await runAsync(
-      "kitten",
-      kittenArgs(["focus-tab", "--match", `id:${project.clientId}`]),
-    );
+  async focusSession(_session: OpenSession): Promise<void> {
+    // Kitty has no workspace concept, and find-open-session is a
+    // wezterm-only feature. Kitty users rely on the wezterm-only command
+    // not being exposed, or see an empty list from listOpenSessions.
+    throw new Error("find-open-session is not supported on the kitty backend");
   }
 
-  async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
-    const osWindows: KittyOsWindow[] = JSON.parse(
-      await runAsync("kitten", kittenArgs(["ls"])),
-    );
-    const resolvedRoots = roots.map((r) => r.replace(/\/$/, ""));
-    const underRoot = (cwd: string) =>
-      resolvedRoots.some((r) => cwd === r || cwd.startsWith(r + "/"));
-
-    const seen = new Set<string>();
-    const out: OpenProject[] = [];
-    for (const osw of osWindows) {
-      for (const tab of osw.tabs) {
-        for (const w of tab.windows) {
-          if (!underRoot(w.cwd)) continue;
-          const key = `${tab.id}::${w.cwd}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          out.push({
-            cwd: w.cwd,
-            workspace: null,
-            tabTitle: tab.title,
-            clientId: String(tab.id),
-          });
-        }
-      }
-    }
-    return out;
+  async listOpenSessions(): Promise<OpenSession[]> {
+    return [];
   }
 }

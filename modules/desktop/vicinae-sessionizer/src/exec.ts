@@ -103,6 +103,58 @@ export async function runAsync(
   }
 }
 
+export function runAsyncWithStdin(
+  cmd: string,
+  args: string[],
+  stdin: string,
+  opts: ExecOpts = {},
+): Promise<string> {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      env: opts.env ?? process.env,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (err) => {
+      log.error("exec", "runAsyncWithStdin spawn error", {
+        cmd,
+        args,
+        err: String(err),
+      });
+      reject(new CommandError(cmd, args, null, String(err)));
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        log.info("exec", "runAsyncWithStdin ok", {
+          cmd,
+          args,
+          ms: Date.now() - start,
+        });
+        resolve(stdout);
+      } else {
+        log.error("exec", "runAsyncWithStdin failed", {
+          cmd,
+          args,
+          code,
+          stderr,
+          ms: Date.now() - start,
+        });
+        reject(new CommandError(cmd, args, code, stderr));
+      }
+    });
+    child.stdin.write(stdin);
+    child.stdin.end();
+  });
+}
+
 export function runDetached(
   cmd: string,
   args: string[],

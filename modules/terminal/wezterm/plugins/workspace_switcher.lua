@@ -66,7 +66,7 @@ function M.switch_workspace()
 		end
 
 		-- Get zoxide directories
-		local success, stdout, stderr = wezterm.run_child_process({ ZOXIDE_PATH, "query", "-l" })
+		local success, stdout = wezterm.run_child_process({ ZOXIDE_PATH, "query", "-l" })
 
 		if success and stdout then
 			for path in stdout:gmatch("[^\r\n]+") do
@@ -97,7 +97,7 @@ function M.switch_workspace()
 				choices = choices,
 				fuzzy = true,
 				fuzzy_description = nf.md_magnify .. "  ",
-				action = wezterm.action_callback(function(inner_window, inner_pane, id, label)
+				action = wezterm.action_callback(function(inner_window, inner_pane, id)
 					if not id then
 						return
 					end
@@ -140,6 +140,72 @@ function M.switch_workspace()
 							inner_pane
 						)
 					end
+				end),
+			}),
+			pane
+		)
+	end)
+end
+
+function M.kill_workspace()
+	return wezterm.action_callback(function(window, pane)
+		local current_ws = window:active_workspace()
+		local choices = {}
+
+		for _, name in ipairs(wezterm.mux.get_workspace_names()) do
+			if name ~= current_ws then
+				table.insert(choices, {
+					id = name,
+					label = wezterm.format({
+						{ Foreground = { Color = colors.icon } },
+						{ Text = nf.md_close_box_outline .. " " },
+						"ResetAttributes",
+						{ Foreground = { Color = colors.workspace } },
+						{ Text = name },
+					}),
+				})
+			end
+		end
+
+		if #choices == 0 then
+			window:toast_notification("wezterm", "No other workspaces to kill", nil, 2000)
+			return
+		end
+
+		window:perform_action(
+			act.InputSelector({
+				title = nf.md_close_circle_outline .. "  Kill Workspace",
+				choices = choices,
+				fuzzy = true,
+				fuzzy_description = nf.md_magnify .. "  ",
+				---@diagnostic disable-next-line: unused-local
+				action = wezterm.action_callback(function(inner_window, _pane, id)
+					if not id then
+						return
+					end
+					local killed = 0
+					for _, mux_win in ipairs(wezterm.mux.all_windows()) do
+						if mux_win:get_workspace() == id then
+							for _, tab in ipairs(mux_win:tabs()) do
+								for _, p in ipairs(tab:panes()) do
+									wezterm.background_child_process({
+										"wezterm",
+										"cli",
+										"kill-pane",
+										"--pane-id",
+										tostring(p:pane_id()),
+									})
+									killed = killed + 1
+								end
+							end
+						end
+					end
+					inner_window:toast_notification(
+						"wezterm",
+						string.format("Killed workspace %q (%d panes)", id, killed),
+						nil,
+						2000
+					)
 				end),
 			}),
 			pane

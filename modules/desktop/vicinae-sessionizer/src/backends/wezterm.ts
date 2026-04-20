@@ -1,8 +1,13 @@
 import { basename, join } from "path";
 import { readdirSync, statSync } from "fs";
-import { CommandError, runAsync, runDetached } from "../exec";
+import {
+  CommandError,
+  runAsync,
+  runAsyncWithStdin,
+  runDetached,
+} from "../exec";
 import { log } from "../log";
-import type { TerminalBackend, OpenProject } from "./index";
+import type { TerminalBackend, OpenSession } from "./index";
 
 interface WzClient {
   focused_workspace: string;
@@ -231,8 +236,6 @@ export class WeztermBackend implements TerminalBackend {
     const name = uniqueWorkspaceName(sessionId, existing);
     log.info("wezterm", "spawning new workspace in new window", { name, cwd });
     // --new-window is required when --workspace is passed without --pane-id.
-    // --pane-id is incompatible with --new-window; we anchor by activating the
-    // returned pane in a follow-up call instead.
     const stdout = await wzRun([
       "cli",
       "spawn",
@@ -244,45 +247,43 @@ export class WeztermBackend implements TerminalBackend {
       ...cmdTail(cmd),
     ]);
     const newPaneId = parsePaneId(stdout);
-    if (newPaneId !== null) {
-      log.info("wezterm", "focusing new workspace pane", { paneId: newPaneId });
-      await wzRun(["cli", "activate-pane", "--pane-id", String(newPaneId)]);
-    } else {
+    if (newPaneId === null) {
       log.warn("wezterm", "could not parse spawn stdout for new pane id", {
         stdout,
       });
+      return;
     }
+    // Cross-app focus via user-var: wezterm's lua listener catches this and
+    // calls SwitchToWorkspace internally, which raises the window reliably
+    // where an external activate-pane would be blocked by GNOME's focus
+    // stealing prevention.
+    await this.signalFocus(name, newPaneId);
   }
 
-  async focusProject(project: OpenProject): Promise<void> {
+  async focusSession(session: OpenSession): Promise<void> {
     if (!findGuiSocket()) {
-      log.warn("wezterm", "focusProject: no GUI running", { project });
+      log.warn("wezterm", "focusSession: no GUI running", { session });
       throw new Error("wezterm is not running");
     }
-    // Re-resolve the pane by (workspace, cwd) — stored clientId can go stale
-    // if the pane was closed or the mux restarted after listOpenProjects ran.
-    const panes = await wzList();
-    const cwdFor = (p: WzPane): string => {
-      const m = p.cwd.match(/^file:\/\/[^/]*(\/.*)$/);
-      return m ? m[1] : p.cwd;
-    };
-    const match = panes.find(
-      (p) => p.workspace === project.workspace && cwdFor(p) === project.cwd,
-    );
-    if (!match) {
-      log.warn("wezterm", "focusProject: pane no longer exists", { project });
-      throw new Error("target pane no longer exists");
+    const workspaces = new Set((await wzList()).map((p) => p.workspace));
+    if (!workspaces.has(session.workspace)) {
+      log.warn("wezterm", "focusSession: workspace no longer exists", {
+        session,
+      });
+      throw new Error(`workspace "${session.workspace}" no longer exists`);
     }
-    log.info("wezterm", "focusing pane", {
-      paneId: match.pane_id,
-      workspace: match.workspace,
-    });
-    await wzRun(["cli", "activate-pane", "--pane-id", String(match.pane_id)]);
+    // Any pane in the mux works as the user-var target; the lua listener
+    // uses the var's value (workspace name), not the source pane.
+    const anyPane = (await wzList())[0];
+    if (!anyPane) {
+      throw new Error("no panes available to signal focus");
+    }
+    await this.signalFocus(session.workspace, anyPane.pane_id);
   }
 
-  async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
+  async listOpenSessions(): Promise<OpenSession[]> {
     if (!findGuiSocket()) {
-      log.info("wezterm", "no GUI running; returning empty project list");
+      log.info("wezterm", "no GUI running; returning empty session list");
       return [];
     }
     let panes: WzPane[];
@@ -290,34 +291,29 @@ export class WeztermBackend implements TerminalBackend {
       panes = await wzList();
     } catch (err) {
       if (isMuxDown(err)) {
-        log.info("wezterm", "mux unreachable; returning empty project list");
+        log.info("wezterm", "mux unreachable; returning empty session list");
         return [];
       }
       throw err;
     }
-    const resolvedRoots = roots.map((r) => r.replace(/\/$/, ""));
-    const cwdFor = (p: WzPane): string => {
-      const m = p.cwd.match(/^file:\/\/[^/]*(\/.*)$/);
-      return m ? m[1] : p.cwd;
-    };
-    const underRoot = (cwd: string) =>
-      resolvedRoots.some((r) => cwd === r || cwd.startsWith(r + "/"));
+    const workspaces = new Set(panes.map((p) => p.workspace));
+    return [...workspaces].map((workspace) => ({ workspace }));
+  }
 
-    const seen = new Set<string>();
-    const out: OpenProject[] = [];
-    for (const pane of panes) {
-      const cwd = cwdFor(pane);
-      if (!underRoot(cwd)) continue;
-      const key = `${pane.tab_id}::${cwd}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({
-        cwd,
-        workspace: pane.workspace,
-        tabTitle: pane.title,
-        clientId: String(pane.pane_id),
-      });
-    }
-    return out;
+  // Wezterm has no direct CLI for setting user vars. The documented pattern
+  // is to write OSC 1337 SetUserVar escape sequence to a pane via send-text;
+  // wezterm's terminal parser intercepts it and fires user-var-changed.
+  // --no-paste prevents bracketed paste mode from wrapping (and breaking) the
+  // OSC. stdin carries the raw bytes.
+  private async signalFocus(workspace: string, paneId: number): Promise<void> {
+    const encoded = Buffer.from(workspace, "utf8").toString("base64");
+    const osc = `\x1b]1337;SetUserVar=SESSIONIZER_FOCUS=${encoded}\x07`;
+    log.info("wezterm", "signalling focus via OSC 1337", { workspace, paneId });
+    await runAsyncWithStdin(
+      "wezterm",
+      ["cli", "send-text", "--pane-id", String(paneId), "--no-paste"],
+      osc,
+      { env: cliEnv() },
+    );
   }
 }

@@ -164,6 +164,7 @@ function M.keymaps()
 
 		-- Workspace switcher (custom fzf)
 		{ key = "e", mods = "CTRL|SHIFT", action = workspace_switcher.switch_workspace() },
+		{ key = "x", mods = "CTRL|SHIFT", action = workspace_switcher.kill_workspace() },
 
 		-- Close pane
 		{ key = "w", mods = "CTRL|SHIFT", action = act.CloseCurrentPane({ confirm = false }) },

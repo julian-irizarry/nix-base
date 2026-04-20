@@ -12,13 +12,13 @@ declare type Preferences = ExtensionPreferences;
 declare namespace Preferences {
   /** Command: Sessionizer */
   export type Sessionizer = ExtensionPreferences & {};
-  /** Command: Find Open Project */
-  export type FindOpenProject = ExtensionPreferences & {};
+  /** Command: Find Open Session */
+  export type FindOpenSession = ExtensionPreferences & {};
 }
 
 declare namespace Arguments {
   /** Command: Sessionizer */
   export type Sessionizer = {};
-  /** Command: Find Open Project */
-  export type FindOpenProject = {};
+  /** Command: Find Open Session */
+  export type FindOpenSession = {};
 }

@@ -24,5 +24,15 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       {
         "$schema" = "https://vicinae.com/schemas/config.json";
         keybinding = "emacs";
+        theme = {
+          light = {
+            name = "kanagawa";
+            icon_theme = "auto";
+          };
+          dark = {
+            name = "kanagawa";
+            icon_theme = "auto";
+          };
+        };
       };
 }

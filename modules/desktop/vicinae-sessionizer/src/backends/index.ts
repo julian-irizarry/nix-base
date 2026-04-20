@@ -1,8 +1,5 @@
-export interface OpenProject {
-  cwd: string;
-  workspace: string | null;
-  tabTitle: string;
-  clientId?: string;
+export interface OpenSession {
+  workspace: string;
 }
 
 export interface TerminalBackend {
@@ -13,8 +10,8 @@ export interface TerminalBackend {
     cwd: string,
     cmd?: string[],
   ): Promise<void>;
-  listOpenProjects(roots: string[]): Promise<OpenProject[]>;
-  focusProject(project: OpenProject): Promise<void>;
+  listOpenSessions(): Promise<OpenSession[]>;
+  focusSession(session: OpenSession): Promise<void>;
 }
 
 export type BackendName = "wezterm" | "kitty";

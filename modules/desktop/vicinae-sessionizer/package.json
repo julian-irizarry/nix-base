@@ -19,10 +19,10 @@
       "mode": "view"
     },
     {
-      "name": "find-open-project",
-      "title": "Find Open Project",
-      "subtitle": "Jump to an already-open project",
-      "description": "Lists project directories currently open in panes/tabs and focuses the chosen one.",
+      "name": "find-open-session",
+      "title": "Find Open Session",
+      "subtitle": "Jump to an already-open wezterm workspace",
+      "description": "Lists wezterm workspaces currently running and switches to the chosen one.",
       "mode": "view"
     }
   ],

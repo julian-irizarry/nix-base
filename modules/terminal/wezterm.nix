@@ -37,6 +37,17 @@
       wezterm.on('set-opacity-reduced', function(window, _) set_opacity(window, 0.85) end)
       wezterm.on('set-opacity-transparent', function(window, _) set_opacity(window, 0.55) end)
 
+      -- Remote-controlled workspace focus for the vicinae sessionizer:
+      -- setting the SESSIONIZER_FOCUS user var on any pane switches this
+      -- window to the named workspace. Runs in-process so the OS window
+      -- raises — external activate-pane requests are blocked by GNOME's
+      -- focus stealing prevention.
+      wezterm.on('user-var-changed', function(window, pane, name, value)
+        if name == 'SESSIONIZER_FOCUS' and value and value ~= ''' then
+          window:perform_action(wezterm.action.SwitchToWorkspace { name = value }, pane)
+        end
+      end)
+
       config.keys = keys.keymaps()
       config.key_tables = keys.key_tables()
 

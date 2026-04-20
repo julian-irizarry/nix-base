@@ -23,7 +23,6 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     (pkgs.formats.json { }).generate "vicinae-settings.json"
       {
         "$schema" = "https://vicinae.com/schemas/config.json";
-        keybinding = "emacs";
         theme = {
           light = {
             name = "kanagawa";

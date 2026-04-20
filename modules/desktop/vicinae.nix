@@ -18,4 +18,11 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       autoStart = true;
     };
   };
+
+  xdg.configFile."vicinae/settings.json".source =
+    (pkgs.formats.json { }).generate "vicinae-settings.json"
+      {
+        "$schema" = "https://vicinae.com/schemas/config.json";
+        keybinding = "emacs";
+      };
 }

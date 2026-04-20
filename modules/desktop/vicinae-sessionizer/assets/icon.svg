@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <!-- Pastel pink rounded square background -->
-  <rect x="8" y="8" width="112" height="112" rx="24" ry="24" fill="#f8c8d8"/>
-  <!-- Subtle inner shadow highlight for depth -->
-  <rect x="8" y="8" width="112" height="112" rx="24" ry="24"
-        fill="none" stroke="#000000" stroke-opacity="0.08" stroke-width="2"/>
-  <!-- Cartoon lightning bolt: thick black stroke for a cartoon outline -->
-  <path d="M 78 28 L 48 68 L 64 68 L 50 100 L 86 56 L 70 56 Z"
+  <!-- Pastel pink rounded square filling the entire canvas -->
+  <rect x="0" y="0" width="128" height="128" rx="28" ry="28" fill="#f8c8d8"/>
+  <!-- Cartoon lightning bolt in black -->
+  <path d="M 78 24 L 44 68 L 62 68 L 46 104 L 90 54 L 72 54 Z"
         fill="#000000"
         stroke="#000000"
         stroke-width="4"

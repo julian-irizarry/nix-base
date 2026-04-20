@@ -9,7 +9,7 @@
   ],
   "license": "MIT",
   "author": "julian-irizarry",
-  "icon": "icon.webp",
+  "icon": "icon.png",
   "commands": [
     {
       "name": "sessionizer",

@@ -254,6 +254,32 @@ export class WeztermBackend implements TerminalBackend {
     }
   }
 
+  async focusProject(project: OpenProject): Promise<void> {
+    if (!findGuiSocket()) {
+      log.warn("wezterm", "focusProject: no GUI running", { project });
+      throw new Error("wezterm is not running");
+    }
+    // Re-resolve the pane by (workspace, cwd) — stored clientId can go stale
+    // if the pane was closed or the mux restarted after listOpenProjects ran.
+    const panes = await wzList();
+    const cwdFor = (p: WzPane): string => {
+      const m = p.cwd.match(/^file:\/\/[^/]*(\/.*)$/);
+      return m ? m[1] : p.cwd;
+    };
+    const match = panes.find(
+      (p) => p.workspace === project.workspace && cwdFor(p) === project.cwd,
+    );
+    if (!match) {
+      log.warn("wezterm", "focusProject: pane no longer exists", { project });
+      throw new Error("target pane no longer exists");
+    }
+    log.info("wezterm", "focusing pane", {
+      paneId: match.pane_id,
+      workspace: match.workspace,
+    });
+    await wzRun(["cli", "activate-pane", "--pane-id", String(match.pane_id)]);
+  }
+
   async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
     if (!findGuiSocket()) {
       log.info("wezterm", "no GUI running; returning empty project list");

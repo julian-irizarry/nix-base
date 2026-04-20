@@ -14,6 +14,7 @@ export interface TerminalBackend {
     cmd?: string[],
   ): Promise<void>;
   listOpenProjects(roots: string[]): Promise<OpenProject[]>;
+  focusProject(project: OpenProject): Promise<void>;
 }
 
 export type BackendName = "wezterm" | "kitty";

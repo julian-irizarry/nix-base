@@ -69,6 +69,17 @@ export class KittyBackend implements TerminalBackend {
     launchTab(sessionId, cwd, cmd);
   }
 
+  async focusProject(project: OpenProject): Promise<void> {
+    if (!project.clientId) {
+      throw new Error("kitty focusProject: project has no clientId");
+    }
+    log.info("kitty", "focusing tab", { tabId: project.clientId });
+    await runAsync(
+      "kitten",
+      kittenArgs(["focus-tab", "--match", `id:${project.clientId}`]),
+    );
+  }
+
   async listOpenProjects(roots: string[]): Promise<OpenProject[]> {
     const osWindows: KittyOsWindow[] = JSON.parse(
       await runAsync("kitten", kittenArgs(["ls"])),

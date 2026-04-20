@@ -9,10 +9,8 @@ import {
   closeMainWindow,
 } from "@vicinae/api";
 import { basename } from "path";
-import { homedir } from "os";
 import { loadConfig } from "./config";
 import { getBackend, type TerminalBackend, type OpenProject } from "./backends";
-import { runAsync } from "./exec";
 import { log } from "./log";
 
 export default function FindOpenProject() {
@@ -48,28 +46,14 @@ export default function FindOpenProject() {
     log.info("find-open", "focus", {
       terminal: cfg.terminal,
       clientId: p.clientId,
+      workspace: p.workspace,
       cwd: p.cwd,
     });
     try {
-      if (cfg.terminal === "wezterm" && p.clientId) {
-        await runAsync("wezterm", [
-          "cli",
-          "activate-pane",
-          "--pane-id",
-          p.clientId,
-        ]);
-      } else if (cfg.terminal === "kitty" && p.clientId) {
-        await runAsync("kitten", [
-          "@",
-          "--to",
-          "unix:/tmp/kitty",
-          "focus-tab",
-          "--match",
-          `id:${p.clientId}`,
-        ]);
-      }
+      await backend.focusProject(p);
       await closeMainWindow();
     } catch (err) {
+      log.error("find-open", "focus failed", { err: String(err) });
       await showToast({
         title: "Focus failed",
         message: String(err),
@@ -83,9 +67,7 @@ export default function FindOpenProject() {
       {items.map((p) => (
         <List.Item
           key={`${p.clientId ?? ""}::${p.cwd}`}
-          title={basename(p.cwd)}
-          subtitle={p.cwd.replace(homedir(), "~")}
-          accessories={[{ text: p.workspace ?? `tab ${p.clientId ?? "?"}` }]}
+          title={p.workspace ?? basename(p.cwd)}
           icon={Icon.Folder}
           actions={
             <ActionPanel>

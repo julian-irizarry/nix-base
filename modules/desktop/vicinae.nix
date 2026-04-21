@@ -23,6 +23,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     (pkgs.formats.json { }).generate "vicinae-settings.json"
       {
         "$schema" = "https://vicinae.com/schemas/config.json";
+        pop_to_root_on_close = true;
         theme = {
           light = {
             name = "kanagawa";

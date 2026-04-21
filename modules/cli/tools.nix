@@ -66,7 +66,7 @@
     curl
     unzip
     zip
-    xclip
+    wl-clipboard
     btop
     gnumake
     pkg-config

@@ -20,6 +20,8 @@
 
       config.default_prog = { '${pkgs.zsh}/bin/zsh', '--login' }
 
+      config.term = 'wezterm'
+
       config.font = wezterm.font '${config.my.font.name}'
       config.font_size = ${toString config.my.font.size}
 

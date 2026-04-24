@@ -1,9 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: nixfmt
-        name: Format Nix files with nixfmt-rfc-style
-        entry: nixfmt
-        language: system
-        types: [file]
-        files: \.nix$

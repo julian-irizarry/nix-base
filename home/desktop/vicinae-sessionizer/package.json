@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "sessionizer",
+  "title": "Sessionizer",
+  "description": "Fuzzy-find a project directory and open it in your terminal (wezterm workspaces or kitty tabs); can also jump to an already-open project.",
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
+  "license": "MIT",
+  "author": "julian-irizarry",
+  "icon": "icon.png",
+  "commands": [
+    {
+      "name": "sessionizer",
+      "title": "Sessionizer",
+      "subtitle": "Jump to a project directory",
+      "description": "Pick a directory under the configured roots and open it in a terminal tab or workspace.",
+      "mode": "view"
+    },
+    {
+      "name": "find-open-session",
+      "title": "Find Open Session",
+      "subtitle": "Jump to an already-open wezterm workspace",
+      "description": "Lists wezterm workspaces currently running and switches to the chosen one.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/react": "^18.3.23",
+    "typescript": "^5.9.2"
+  }
+}

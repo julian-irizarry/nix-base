@@ -14,6 +14,7 @@ nixpkgs.lib.nixosSystem {
   inherit system;
   modules = [
     ../nixos
+    { nixpkgs.config.allowUnfree = true; }
   ]
   ++ modules
   ++ nixpkgs.lib.optionals (homeModules != null) [
@@ -24,7 +25,7 @@ nixpkgs.lib.nixosSystem {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.users.${config.sys.username} = {
-          imports = [ homeModulesDefault ] ++ homeModules;
+          imports = homeModulesDefault ++ homeModules;
           my.platform.nixGL.enable = false;
         };
       }

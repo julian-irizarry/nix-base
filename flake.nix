@@ -47,7 +47,11 @@
       };
       mkSystem = import ./lib/mkSystem.nix {
         inherit nixpkgs home-manager;
-        homeModulesDefault = ./home;
+        homeModulesDefault = [
+          ./home
+          vicinae.homeManagerModules.default
+          { targets.genericLinux.nixGL.packages = nixGL.packages; }
+        ];
       };
 
       supportedSystems = [
@@ -84,6 +88,15 @@
           }
         ];
       };
+
+      nixosVmTest = import ./nixos/tests {
+        inherit nixpkgs home-manager;
+        homeModulesDefault = [
+          ./home
+          vicinae.homeManagerModules.default
+          { targets.genericLinux.nixGL.packages = nixGL.packages; }
+        ];
+      };
     in
     {
       homeModules.default = ./home;
@@ -101,6 +114,7 @@
         }
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           nixos = nixosSmokeConfig.config.system.build.toplevel;
+          nixos-vm = nixosVmTest;
         }
       );
     };

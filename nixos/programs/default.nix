@@ -11,13 +11,4 @@
     chromium
     obsidian
   ];
-
-  nixpkgs.config.allowUnfreePredicate =
-    pkg:
-    builtins.elem (builtins.parseDrvName (pkg.name or pkg.pname or "")).name [
-      "chromium"
-      "obsidian"
-      "1password"
-      "1password-cli"
-    ];
 }

@@ -1,11 +1,10 @@
-# home-manager (base)
+# nix-base
 
-Cross-platform home-manager **library** flake. Not directly activatable — it exposes
-`homeModules.default` and `lib.mkHome` for a private "extended" consumer flake to
-import. Keep this repo public-safe: no identity, no secrets, no internal hostnames.
+Cross-platform **NixOS + home-manager** library flake. Exposes `nixosModules.default`,
+`homeModules.default`, `lib.mkSystem`, and `lib.mkHome` for a private consumer flake
+to import. Keep this repo public-safe: no identity, no secrets, no internal hostnames.
 
-See `docs/plans/2026-04-18-home-manager-migration-design.md` for the full design
-rationale (two-flake split, secret handling, platform strategy).
+See `docs/specs/2026-04-24-nix-base-design.md` for the full design rationale.
 
 ## Commands
 
@@ -16,13 +15,12 @@ nix fmt
 # Evaluate modules + formatting check (the "test suite")
 nix flake check --show-trace
 
-# Smoke-build the activation package without activating (dummy identity)
-nix build .#checks.x86_64-linux.default         # Linux
-nix build .#checks.aarch64-darwin.default       # macOS
+# Smoke-build the home-manager activation package (dummy identity)
+nix build .#checks.x86_64-linux.home
+nix build .#checks.aarch64-darwin.home
 
-# Iterate from a consumer flake against this local checkout (no commit needed)
-home-manager switch --flake .#<system> \
-  --override-input home-manager-base path:/home/jirizarry/Downloads/repos/home-manager
+# Smoke-build the NixOS system toplevel (Linux only)
+nix build .#checks.x86_64-linux.nixos
 ```
 
 Supported systems: `x86_64-linux`, `aarch64-darwin`. `mkHome` accepts a `systems`
@@ -30,20 +28,23 @@ arg to add more.
 
 ## Architecture
 
-- `flake.nix` — exposes `homeModules.default`, `lib.mkHome`, `formatter`, `checks`.
-  `checks.default` is a smoke build of the module tree with placeholder identity,
-  so `nix flake check` catches regressions without a real consumer.
+- `flake.nix` — exposes `homeModules.default`, `nixosModules.default`,
+  `lib.mkHome`, `lib.mkSystem`, `formatter`, `checks`. Smoke builds verify
+  both module trees with placeholder values.
 - `lib/mkHome.nix` — thin wrapper over `home-manager.lib.homeManagerConfiguration`;
   returns an attrset keyed by system string.
-- `home/options.nix` — the **public contract**. Everything Claude touches that
-  varies between personal/work lives here under `my.*`. Keep this surface small.
-- `home/default.nix` — imports every topical folder. Platform gating happens
-  inside each platform module via `lib.mkIf pkgs.stdenv.hostPlatform.is{Linux,Darwin}`
-  (not at the import level).
-- `home/home-defaults.nix` — derives `home.homeDirectory` from `home.username`
-  and sets `home.stateVersion`. Uses `lib.mkDefault` so consumers can override.
-- `home/{cli,editors,identity,network,nix,platform,shell,terminal}/` — topical
-  module folders. Each has a `default.nix` that imports its siblings.
+- `lib/mkSystem.nix` — thin wrapper over `nixpkgs.lib.nixosSystem`; optionally
+  integrates home-manager as a NixOS module when `homeModules` is provided.
+  Sets `my.platform.nixGL.enable = false` for NixOS-integrated home-manager.
+- `home/options.nix` — the home-manager **public contract** under `my.*`.
+- `home/default.nix` — imports every topical home-manager folder.
+- `home/home-defaults.nix` — derives `home.homeDirectory` from `home.username`.
+- `home/{cli,desktop,editors,identity,network,nix,platform,shell,terminal}/` —
+  topical home-manager module folders.
+- `nixos/options.nix` — the NixOS **public contract** under `sys.*`.
+- `nixos/default.nix` — imports every NixOS submodule.
+- `nixos/{boot,desktop,hardware,networking,nix,programs,security,services,users,virtualisation}/`
+  — topical NixOS module folders. Feature-gated modules use `lib.mkIf config.sys.*`.
 
 ## The `my.*` option surface
 
@@ -62,6 +63,26 @@ Only values that genuinely differ between consumers are options. Everything else
   `~/.ssh/config.d/hm-hosts` (not `~/.ssh/config` — see SSH gotcha below).
 - `my.font.{nerdFamily,name,size}` — `nerdFamily` indexes `pkgs.nerd-fonts.*`;
   `name` is the rendered family name terminals/editors reference. They must match.
+
+## The `sys.*` option surface
+
+Only values that genuinely differ between NixOS consumers are options.
+Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded.
+
+- `sys.hostname` — maps to `networking.hostName`.
+- `sys.username` — primary user account, groups, shell.
+- `sys.timezone` — defaults to `"America/New_York"`.
+- `sys.locale` — defaults to `"en_US.UTF-8"`.
+- `sys.nvidia.{enable,prime.enable,prime.intelBusId,prime.nvidiaBusId}` — NVIDIA
+  drivers and hybrid offload. Prime requires bus IDs from `lspci`.
+- `sys.docker.enable` — Docker daemon + user group.
+- `sys.bluetooth.enable` — bluez.
+- `sys.printing.enable` — CUPS.
+- `sys.fingerprint.enable` — fprintd.
+- `sys.thunderbolt.enable` — bolt for TB4 device authorization.
+- `sys.autoLogin` — skip the greeter (for FDE machines).
+- `sys.swap.{size,enableHibernate}` — swap file (size in MB) with optional hibernate.
+- `sys.nix.{extraSubstituters,extraTrustedPublicKeys}` — additional binary caches.
 
 ## Non-obvious patterns / gotchas
 
@@ -89,11 +110,35 @@ Only values that genuinely differ between consumers are options. Everything else
 - **Secrets never live in this repo.** Any secret wiring belongs in the extended
   flake's `work-secrets.nix` via `my.zsh.extraInitFragments`. Reject PRs that add
   plaintext tokens, identity emails, or internal hostnames here.
+- **nixGL wrapping is conditional.** `my.platform.nixGL.enable` (default `true`)
+  controls whether GPU apps are wrapped with nixGL. On NixOS (via `mkSystem`),
+  this is set to `false` automatically. Individual modules (`wezterm.nix`,
+  `kitty.nix`, `vicinae.nix`) check this option before wrapping.
 
 ## Consumer flake shape
 
 ```nix
-home-manager-base.lib.mkHome {
+# NixOS with integrated home-manager (work machine)
+nix-base.lib.mkSystem {
+  system = "x86_64-linux";
+  modules = [
+    ./hardware-configuration.nix
+    {
+      sys.hostname = "workstation";
+      sys.username = "you";
+      sys.nvidia.enable = true;
+    }
+  ];
+  homeModules = [{
+    my.git.userName  = "Your Name";
+    my.git.userEmail = "you@work.com";
+  }];
+};
+```
+
+```nix
+# Standalone home-manager (non-NixOS)
+nix-base.lib.mkHome {
   modules = [{
     home.username = "you";
     my.git.userName  = "Your Name";

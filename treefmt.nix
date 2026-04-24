@@ -18,5 +18,5 @@
   ];
 
   # omp.json uses nonstandard formatting; leave it alone.
-  settings.formatter.prettier.excludes = [ "modules/shell/omp.json" ];
+  settings.formatter.prettier.excludes = [ "home/shell/omp.json" ];
 }

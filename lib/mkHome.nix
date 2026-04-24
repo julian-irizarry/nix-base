@@ -19,7 +19,7 @@ let
     home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.${system};
       modules = [
-        ../modules
+        ../home
         vicinae.homeManagerModules.default
         { targets.genericLinux.nixGL.packages = nixGL.packages; }
       ]

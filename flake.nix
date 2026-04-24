@@ -66,7 +66,7 @@
       };
     in
     {
-      homeModules.default = ./modules;
+      homeModules.default = ./home;
 
       lib = { inherit mkHome; };
 

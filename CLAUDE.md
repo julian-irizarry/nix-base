@@ -35,14 +35,14 @@ arg to add more.
   so `nix flake check` catches regressions without a real consumer.
 - `lib/mkHome.nix` — thin wrapper over `home-manager.lib.homeManagerConfiguration`;
   returns an attrset keyed by system string.
-- `modules/options.nix` — the **public contract**. Everything Claude touches that
+- `home/options.nix` — the **public contract**. Everything Claude touches that
   varies between personal/work lives here under `my.*`. Keep this surface small.
-- `modules/default.nix` — imports every topical folder. Platform gating happens
+- `home/default.nix` — imports every topical folder. Platform gating happens
   inside each platform module via `lib.mkIf pkgs.stdenv.hostPlatform.is{Linux,Darwin}`
   (not at the import level).
-- `modules/home-defaults.nix` — derives `home.homeDirectory` from `home.username`
+- `home/home-defaults.nix` — derives `home.homeDirectory` from `home.username`
   and sets `home.stateVersion`. Uses `lib.mkDefault` so consumers can override.
-- `modules/{cli,editors,identity,network,nix,platform,shell,terminal}/` — topical
+- `home/{cli,editors,identity,network,nix,platform,shell,terminal}/` — topical
   module folders. Each has a `default.nix` that imports its siblings.
 
 ## The `my.*` option surface
@@ -66,11 +66,11 @@ Only values that genuinely differ between consumers are options. Everything else
 ## Non-obvious patterns / gotchas
 
 - **SSH config is not owned by home-manager.** `latticectl` writes to
-  `~/.ssh/config`, so `modules/network/ssh.nix` renders `my.ssh.extraHosts` to
+  `~/.ssh/config`, so `home/network/ssh.nix` renders `my.ssh.extraHosts` to
   `~/.ssh/config.d/hm-hosts` and expects the user to `Include config.d/hm-hosts`
   once at the top of `~/.ssh/config`. Do **not** switch this to `programs.ssh` —
   latticectl will clobber it.
-- **1Password SSH agent wiring is deferred.** `modules/platform/darwin.nix` is a
+- **1Password SSH agent wiring is deferred.** `home/platform/darwin.nix` is a
   placeholder for the `IdentityAgent` socket path. Linux path is
   `~/.1password/agent.sock`, macOS is under
   `~/Library/Group Containers/.../agent.sock`. Configure per-platform, not shared.
@@ -78,13 +78,13 @@ Only values that genuinely differ between consumers are options. Everything else
   per fresh machine. An earlier activation hook did this automatically via
   `sudo chsh` but was removed — it prompted for a password on every switch and
   broke non-interactive activations.
-- **`initContent` ordering matters.** `modules/shell/zsh.nix` uses `lib.mkMerge`
+- **`initContent` ordering matters.** `home/shell/zsh.nix` uses `lib.mkMerge`
   with `mkBefore` (sources `.zshenv.local`), the default slot (bindkeys, completion
   zstyles, widgets, sources `.zshrc.local`), and `mkAfter` (concatenates
   `my.zsh.extraInitFragments`). Extended-flake secrets must land last.
 - **Tools use real binaries, not Debian aliases.** `fd`/`bat`/`eza` come from
   nixpkgs — don't reintroduce `fdfind`/`batcat` shims.
-- **`modules/shell/omp.json`** is excluded from prettier in `treefmt.nix`
+- **`home/shell/omp.json`** is excluded from prettier in `treefmt.nix`
   (oh-my-posh's schema uses nonstandard formatting). Don't re-enable it.
 - **Secrets never live in this repo.** Any secret wiring belongs in the extended
   flake's `work-secrets.nix` via `my.zsh.extraInitFragments`. Reject PRs that add

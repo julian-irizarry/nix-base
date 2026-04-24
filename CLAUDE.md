@@ -4,7 +4,7 @@ Cross-platform **NixOS + home-manager** library flake. Exposes `nixosModules.def
 `homeModules.default`, `lib.mkSystem`, and `lib.mkHome` for a private consumer flake
 to import. Keep this repo public-safe: no identity, no secrets, no internal hostnames.
 
-See `docs/specs/2026-04-24-nix-base-design.md` for the full design rationale.
+See `README.md` for usage and the full option reference.
 
 ## Commands
 

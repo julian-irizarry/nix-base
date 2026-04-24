@@ -18,5 +18,6 @@
       "chromium"
       "obsidian"
       "1password"
+      "1password-cli"
     ];
 }

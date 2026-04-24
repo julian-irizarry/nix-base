@@ -1,5 +1,5 @@
 {
-  description = "Base home-manager module library (cross-platform)";
+  description = "Base NixOS + home-manager module library";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -45,6 +45,10 @@
           nixGL
           ;
       };
+      mkSystem = import ./lib/mkSystem.nix {
+        inherit nixpkgs home-manager;
+        homeModulesDefault = ./home;
+      };
 
       supportedSystems = [
         "x86_64-linux"
@@ -64,17 +68,40 @@
           }
         ];
       };
+
+      nixosSmokeConfig = mkSystem {
+        system = "x86_64-linux";
+        modules = [
+          {
+            sys.hostname = "smoke-test";
+            sys.username = "smoke-test";
+
+            # Stub: smoke test has no real disk
+            fileSystems."/" = {
+              device = "/dev/null";
+              fsType = "tmpfs";
+            };
+          }
+        ];
+      };
     in
     {
       homeModules.default = ./home;
+      nixosModules.default = ./nixos;
 
-      lib = { inherit mkHome; };
+      lib = { inherit mkHome mkSystem; };
 
       formatter = forSupportedSystems (system: (treefmtFor system).config.build.wrapper);
 
-      checks = forSupportedSystems (system: {
-        default = smokeConfigs.${system}.activationPackage;
-        formatting = (treefmtFor system).config.build.check self;
-      });
+      checks = forSupportedSystems (
+        system:
+        {
+          home = smokeConfigs.${system}.activationPackage;
+          formatting = (treefmtFor system).config.build.check self;
+        }
+        // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          nixos = nixosSmokeConfig.config.system.build.toplevel;
+        }
+      );
     };
 }

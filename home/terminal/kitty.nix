@@ -3,7 +3,7 @@
 {
   programs.kitty = {
     enable = true;
-    package = config.lib.nixGL.wrap pkgs.kitty;
+    package = if config.my.platform.nixGL.enable then config.lib.nixGL.wrap pkgs.kitty else pkgs.kitty;
 
     font = {
       name = config.my.font.name;

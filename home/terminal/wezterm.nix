@@ -7,7 +7,8 @@
 {
   programs.wezterm = {
     enable = true;
-    package = config.lib.nixGL.wrap pkgs.wezterm;
+    package =
+      if config.my.platform.nixGL.enable then config.lib.nixGL.wrap pkgs.wezterm else pkgs.wezterm;
     extraConfig = ''
       local smart_splits = wezterm.plugin.require('https://github.com/mrjones2014/smart-splits.nvim')
       local rose_pine_black = require 'rose_pine_black'

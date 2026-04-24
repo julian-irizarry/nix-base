@@ -12,7 +12,8 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
   # nixGL.wrap makes Qt's RHI find system GL drivers on non-NixOS.
   services.vicinae = {
     enable = true;
-    package = config.lib.nixGL.wrap pkgs.vicinae;
+    package =
+      if config.my.platform.nixGL.enable then config.lib.nixGL.wrap pkgs.vicinae else pkgs.vicinae;
     systemd = {
       enable = true;
       autoStart = true;

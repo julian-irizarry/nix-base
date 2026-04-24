@@ -96,6 +96,17 @@
       };
     };
 
+    platform = {
+      nixGL.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Wrap GPU applications with nixGL for non-NixOS Linux. Set to false
+          on NixOS where the system handles OpenGL natively.
+        '';
+      };
+    };
+
     font = {
       nerdFamily = lib.mkOption {
         type = lib.types.str;

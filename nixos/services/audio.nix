@@ -8,5 +8,5 @@
   };
 
   # Conflict guard — PulseAudio daemon must not run alongside PipeWire.
-  hardware.pulseaudio.enable = false;
+  services.pulseaudio.enable = false;
 }

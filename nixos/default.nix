@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, lib, ... }:
 
 {
   imports = [
@@ -23,4 +23,6 @@
 
   time.timeZone = config.sys.timezone;
   i18n.defaultLocale = config.sys.locale;
+
+  system.stateVersion = lib.mkDefault "25.05";
 }

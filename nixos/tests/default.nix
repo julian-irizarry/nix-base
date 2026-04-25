@@ -10,6 +10,7 @@
   home-manager,
   homeModulesDefault,
   inputs,
+  noctalia,
 }:
 
 let
@@ -68,6 +69,7 @@ pkgs.testers.runNixOSTest {
       # Integrate home-manager for user config testing
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+      home-manager.extraSpecialArgs = { inherit noctalia; };
       home-manager.users.testuser = {
         imports = homeModulesDefault;
         my.git.userName = "Test User";

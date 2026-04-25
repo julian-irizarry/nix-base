@@ -3,6 +3,7 @@
   home-manager,
   vicinae,
   nixGL,
+  noctalia,
 }:
 
 {
@@ -18,9 +19,11 @@ let
     system:
     home-manager.lib.homeManagerConfiguration {
       pkgs = nixpkgs.legacyPackages.${system};
+      extraSpecialArgs = { inherit noctalia; };
       modules = [
         ../home
         vicinae.homeManagerModules.default
+        noctalia.homeModules.default
         { targets.genericLinux.nixGL.packages = nixGL.packages; }
       ]
       ++ modules;

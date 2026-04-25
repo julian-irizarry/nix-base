@@ -4,7 +4,7 @@
   imports = [
     ./options.nix
     ./boot
-    ./desktop/cosmic.nix
+    ./desktop
     ./hardware/nvidia.nix
     ./hardware/firmware.nix
     ./hardware/thunderbolt.nix

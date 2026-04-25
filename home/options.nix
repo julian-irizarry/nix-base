@@ -130,5 +130,28 @@
         description = "Default editor/terminal font size in points.";
       };
     };
+
+    desktop = {
+      hyprland = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Enable the Hyprland home-manager config: keybinds, window rules,
+            and shell exec-once. Independent of sys.desktop.hyprland.enable on
+            the NixOS side; enable both for a working compositor + user session.
+          '';
+        };
+
+        shell = lib.mkOption {
+          type = lib.types.enum [ "noctalia" ];
+          default = "noctalia";
+          description = ''
+            Desktop shell launched on hyprland login. Enum currently fixed at
+            "noctalia"; shaped for future alternatives.
+          '';
+        };
+      };
+    };
   };
 }

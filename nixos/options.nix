@@ -184,6 +184,27 @@
       };
     };
 
+    desktop = {
+      cosmic.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Enable the COSMIC desktop environment (services.desktopManager.cosmic
+          plus cosmic-greeter).
+        '';
+      };
+
+      hyprland.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable the Hyprland Wayland compositor (programs.hyprland) and the
+          xdg-desktop-portal-hyprland portal. May be enabled alongside
+          sys.desktop.cosmic.enable; the greeter lists both session files.
+        '';
+      };
+    };
+
     boot = {
       loader = lib.mkOption {
         type = lib.types.enum [

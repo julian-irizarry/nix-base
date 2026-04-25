@@ -67,6 +67,12 @@ Only values that genuinely differ between consumers are options. Everything else
   `~/.ssh/config.d/hm-hosts` (not `~/.ssh/config` — see SSH gotcha below).
 - `my.font.{nerdFamily,name,size}` — `nerdFamily` indexes `pkgs.nerd-fonts.*`;
   `name` is the rendered family name terminals/editors reference. They must match.
+- `my.desktop.hyprland.{enable,shell}` — enable the Hyprland home config
+  (keybinds, window rules, exec-once for the shell). `shell` is an enum
+  currently fixed at `"noctalia"`; shaped for future alternatives.
+  Independent of `sys.desktop.hyprland.enable` on the NixOS side — pair them
+  yourself. `noctalia` is threaded in via `extraSpecialArgs` so the home
+  sub-module can reference `noctalia.packages.${system}.default`.
 
 ## The `sys.*` option surface
 
@@ -109,6 +115,12 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   outside nix (e.g., sops-provisioned).
 - `sys.nix.distributedBuilds` — toggle `nix.distributedBuilds`; consumers must also
   declare `nix.buildMachines` or `sys.nix.extraSettings.builders`.
+- `sys.desktop.{cosmic.enable,hyprland.enable}` — independent compositor toggles.
+  `cosmic.enable` defaults `true` to preserve historical behavior (cosmic used
+  to be imported unconditionally). Both may be `true` simultaneously; cosmic-
+  greeter lists whichever session files are installed. `hyprland.enable` also
+  wires `nix.settings.extra-substituters` for `noctalia.cachix.org` so the
+  deployed daemon can fetch pre-built noctalia-shell.
 
 ## Non-obvious patterns / gotchas
 
@@ -162,6 +174,52 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   controls whether GPU apps are wrapped with nixGL. On NixOS (via `mkSystem`),
   this is set to `false` automatically. Individual modules (`wezterm.nix`,
   `kitty.nix`, `vicinae.nix`) check this option before wrapping.
+- **Hyprland and cosmic are independent toggles.** `sys.desktop.cosmic.enable`
+  and `sys.desktop.hyprland.enable` may both be `true`; cosmic-greeter lists
+  whichever session files are installed. Shared Wayland env vars
+  (`NIXOS_OZONE_WL`, `MOZ_ENABLE_WAYLAND`) live in `nixos/desktop/default.nix`
+  and land whenever either desktop is on.
+- **Hyprland home config is independent from the NixOS toggle.** Setting
+  `my.desktop.hyprland.enable = true` without `sys.desktop.hyprland.enable`
+  on the NixOS side installs user config for a compositor that isn't running.
+  By design — the user is responsible for pairing both halves. The home
+  module is additionally gated on `pkgs.stdenv.hostPlatform.isLinux` because
+  hyprland has no Darwin build.
+- **Hyprland keybinds mirror popshell/cosmic muscle memory.** See
+  `home/desktop/hyprland/keybinds.nix` for the full list (Super+hjkl focus,
+  Super+Shift+hjkl swap, Super+W close, Super+F zoom, Super+G float,
+  Super+O split, Super+Shift+O cycle layout, Ctrl+Space vicinae,
+  Super+Return wezterm). Layout cycle is a `pkgs.writeShellScriptBin` wrapper
+  around `hyprctl keyword general:layout` because hyprland has no built-in
+  layout-cycle dispatcher.
+- **Noctalia is threaded via extraSpecialArgs.** `lib/mkHome.nix`,
+  `lib/mkSystem.nix`, and `nixos/tests/default.nix` all pass the `noctalia`
+  flake input into home-manager's `extraSpecialArgs`. `home/desktop/hyprland/
+noctalia.nix` receives it as a module arg and wires
+  `programs.noctalia-shell.package = noctalia.packages.${system}.default`.
+  If you add new mkHome/mkSystem paths, remember to thread noctalia the same
+  way or the module will eval-error.
+- **Hyprland on NVIDIA needs extra env vars.** If `sys.nvidia.enable = true`
+  is combined with `sys.desktop.hyprland.enable = true`, the consumer should
+  set `WLR_NO_HARDWARE_CURSORS=1` (and friends) via their extended flake —
+  nix-base does not auto-wire these.
+- **Noctalia cachix cache is wired in two layers.** `flake.nix` top-level
+  `nixConfig` adds `noctalia.cachix.org` as an `extra-substituter` for
+  evaluators (helps CI/smoke builds). `nixos/desktop/hyprland.nix` mirrors
+  that in `nix.settings` when `sys.desktop.hyprland.enable = true` so the
+  deployed daemon uses the cache on rebuild. Both use the **additive** keys
+  (`extra-substituters`/`extra-trusted-public-keys`) so Determinate's
+  defaults are preserved. Key: `noctalia.cachix.org-1:pCOR47nn...`.
+- **Noctalia's wifi/bluetooth/battery/power-profile widgets need upstream
+  NixOS services.** Noctalia's panels surface data from services that
+  nix-base does NOT auto-wire when hyprland is enabled:
+  - `networking.networkmanager.enable` — already hardcoded on by nix-base (wifi OK).
+  - `hardware.bluetooth.enable` — consumer opts in via `sys.bluetooth.enable`.
+  - `services.power-profiles-daemon.enable` **or** `services.tuned.enable` —
+    consumer-wired; no nix-base option.
+  - `services.upower.enable` — consumer-wired; no nix-base option.
+    Missing deps don't break noctalia; the corresponding widgets just go dead.
+    Laptop consumers should turn these on in their own config.
 
 ## Consumer flake shape
 

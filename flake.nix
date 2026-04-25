@@ -1,6 +1,13 @@
 {
   description = "Base NixOS + home-manager module library";
 
+  nixConfig = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
@@ -29,6 +36,10 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -41,6 +52,7 @@
       nixGL,
       determinate,
       disko,
+      noctalia,
       ...
     }:
     let
@@ -52,14 +64,16 @@
           home-manager
           vicinae
           nixGL
+          noctalia
           ;
       };
       mkSystem = import ./lib/mkSystem.nix {
-        inherit nixpkgs home-manager;
+        inherit nixpkgs home-manager noctalia;
         inputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default
+          noctalia.homeModules.default
           { targets.genericLinux.nixGL.packages = nixGL.packages; }
         ];
       };
@@ -79,6 +93,8 @@
             home.username = "smoke-test";
             my.git.userName = "smoke";
             my.git.userEmail = "smoke@example.com";
+
+            my.desktop.hyprland.enable = true;
           }
         ];
       };
@@ -89,6 +105,8 @@
           {
             sys.hostname = "smoke-test";
             sys.username = "smoke-test";
+
+            sys.desktop.hyprland.enable = true;
 
             # Stub: smoke test has no real disk
             fileSystems."/" = {
@@ -167,11 +185,12 @@
       };
 
       nixosVmTest = import ./nixos/tests {
-        inherit nixpkgs home-manager;
+        inherit nixpkgs home-manager noctalia;
         inputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default
+          noctalia.homeModules.default
           { targets.genericLinux.nixGL.packages = nixGL.packages; }
         ];
       };

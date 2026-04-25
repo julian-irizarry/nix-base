@@ -112,25 +112,46 @@ Activate: `home-manager switch --flake .#x86_64-linux` or `.#aarch64-darwin`
 | `sys.determinate.enable`         | bool        | `false`              | Use Determinate Nix instead of upstream nix            |
 | `sys.boot.loader`                | enum        | `"systemd-boot"`     | Bootloader; "grub" enables cryptodisk                  |
 | `sys.boot.fido2Unlock.enable`    | bool        | `false`              | YubiKey LUKS auto-unlock in initrd                     |
+| `sys.desktop.cosmic.enable`      | bool        | `true`               | COSMIC desktop + greeter                               |
+| `sys.desktop.hyprland.enable`    | bool        | `false`              | Hyprland compositor + portal (+ noctalia cachix)       |
 
-**Hardcoded** (always enabled): COSMIC DE, PipeWire, NetworkManager,
-fwupd, firewall, polkit, 1Password, Chromium, Obsidian, libvirt, flakes, zsh.
+**Hardcoded** (always enabled): PipeWire, NetworkManager, fwupd, firewall,
+polkit, 1Password, Chromium, Obsidian, libvirt, flakes, zsh. COSMIC is on
+by default but now gated via `sys.desktop.cosmic.enable`; hyprland may be
+enabled alongside it and the greeter lists both sessions.
+
+### Hyprland + noctalia service deps
+
+Noctalia's panels surface data from services nix-base does not auto-enable
+when `sys.desktop.hyprland.enable = true`. Add these to your consumer flake
+(typically laptop configs) for full widget coverage:
+
+| Service                                 | Enables                                |
+| --------------------------------------- | -------------------------------------- |
+| `networking.networkmanager.enable`      | wifi (already hardcoded)               |
+| `hardware.bluetooth.enable`             | bluetooth (via `sys.bluetooth.enable`) |
+| `services.power-profiles-daemon.enable` | power profile toggle                   |
+| `services.upower.enable`                | battery widget                         |
+
+Missing deps don't break noctalia — the affected widgets just show no data.
 
 ## Home-manager options (`my.*`)
 
-| Option                      | Type        | Default                | Description                           |
-| --------------------------- | ----------- | ---------------------- | ------------------------------------- |
-| `my.git.userName`           | str         | —                      | Git user.name                         |
-| `my.git.userEmail`          | str         | —                      | Git user.email                        |
-| `my.git.signingKey`         | str or null | `null`                 | SSH/GPG signing key                   |
-| `my.git.signingFormat`      | enum        | `"ssh"`                | openpgp, ssh, x509                    |
-| `my.git.extraIncludes`      | list        | `[]`                   | Conditional gitconfig includes        |
-| `my.zsh.extraInitFragments` | list        | `[]`                   | Shell snippets appended to .zshrc     |
-| `my.ssh.extraHosts`         | attrs       | `{}`                   | SSH matchBlocks                       |
-| `my.font.nerdFamily`        | str         | `"fira-code"`          | Nerd font attr name                   |
-| `my.font.name`              | str         | `"FiraCode Nerd Font"` | Font family for terminals/editors     |
-| `my.font.size`              | int         | `13`                   | Font size                             |
-| `my.platform.nixGL.enable`  | bool        | `true`                 | GPU wrapping (auto-disabled on NixOS) |
+| Option                       | Type        | Default                | Description                                          |
+| ---------------------------- | ----------- | ---------------------- | ---------------------------------------------------- |
+| `my.git.userName`            | str         | —                      | Git user.name                                        |
+| `my.git.userEmail`           | str         | —                      | Git user.email                                       |
+| `my.git.signingKey`          | str or null | `null`                 | SSH/GPG signing key                                  |
+| `my.git.signingFormat`       | enum        | `"ssh"`                | openpgp, ssh, x509                                   |
+| `my.git.extraIncludes`       | list        | `[]`                   | Conditional gitconfig includes                       |
+| `my.zsh.extraInitFragments`  | list        | `[]`                   | Shell snippets appended to .zshrc                    |
+| `my.ssh.extraHosts`          | attrs       | `{}`                   | SSH matchBlocks                                      |
+| `my.font.nerdFamily`         | str         | `"fira-code"`          | Nerd font attr name                                  |
+| `my.font.name`               | str         | `"FiraCode Nerd Font"` | Font family for terminals/editors                    |
+| `my.font.size`               | int         | `13`                   | Font size                                            |
+| `my.platform.nixGL.enable`   | bool        | `true`                 | GPU wrapping (auto-disabled on NixOS)                |
+| `my.desktop.hyprland.enable` | bool        | `false`                | Hyprland home config (keybinds, window rules, shell) |
+| `my.desktop.hyprland.shell`  | enum        | `"noctalia"`           | Shell launched on hyprland login                     |
 
 ## Development
 

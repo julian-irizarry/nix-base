@@ -3,6 +3,7 @@
   home-manager,
   homeModulesDefault,
   inputs,
+  noctalia,
 }:
 
 {
@@ -29,6 +30,7 @@ nixpkgs.lib.nixosSystem {
       {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
+        home-manager.extraSpecialArgs = { inherit noctalia; };
         home-manager.users.${config.sys.username} = {
           imports = homeModulesDefault ++ homeModules;
           my.platform.nixGL.enable = false;

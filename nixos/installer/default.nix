@@ -2,6 +2,7 @@
   inputs,
   config,
   pkgs,
+  lib,
   ...
 }:
 
@@ -60,5 +61,19 @@ in
       installScript
       pkgs.parted
     ];
+
+    # Drop ZFS from the live ISO. Upstream nixpkgs occasionally ships a
+    # broken zfs-kernel for the latest kernel, and isoImage.contents pulls
+    # it via boot.initrd.systemd's storePaths. We only need btrfs/vfat/ext4
+    # in the installer environment; the target system module set decides
+    # what the installed system supports.
+    boot.supportedFilesystems.zfs = lib.mkForce false;
+
+    # Suppress the host's swap config in the live ISO. The host's
+    # sys.swap.{path,enableHibernate} settings describe the *installed*
+    # system, not the live USB — a hibernate-wired swapfile makes no sense
+    # in a tmpfs-rooted installer environment, and would cause
+    # boot.resumeDevice to resolve to the tmpfs root device.
+    sys.swap.size = lib.mkForce null;
   };
 }

@@ -91,10 +91,30 @@
         default = null;
         description = "Swap file size in MB. null disables swap management. Example: 32768 for 32GB.";
       };
+      path = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/swapfile";
+        description = ''
+          Filesystem path of the swap file. On btrfs root, override to a path
+          on a NoCOW @swap subvolume (e.g. "/swap/swapfile") — kernel rejects
+          hibernate from a swapfile on a CoW subvolume.
+        '';
+      };
       enableHibernate = lib.mkOption {
         type = lib.types.bool;
         default = false;
         description = "Enable hibernate (suspend-to-disk). Requires swap.size >= RAM.";
+      };
+      resumeOffset = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+        description = ''
+          Physical block offset of the swap file, used as `resume_offset=` on
+          the kernel cmdline for hibernate-from-swapfile. Compute post-install
+          via `btrfs inspect-internal map-swapfile -r <path>` (btrfs) or
+          `filefrag -e <path> | head -2` (ext4). When null, hibernate-from-
+          swapfile won't resume; the module emits a warning.
+        '';
       };
     };
 

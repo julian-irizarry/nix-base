@@ -85,7 +85,14 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
 - `sys.fingerprint.enable` — fprintd.
 - `sys.thunderbolt.enable` — bolt for TB4 device authorization.
 - `sys.autoLogin` — skip the greeter (for FDE machines).
-- `sys.swap.{size,enableHibernate}` — swap file (size in MB) with optional hibernate.
+- `sys.swap.{size,path,enableHibernate,resumeOffset}` — swap file (size in MB) at
+  `path` (default `/var/lib/swapfile`). With `enableHibernate = true`, the module
+  derives `boot.resumeDevice` from the fileSystems entry containing `path`.
+  `resumeOffset` must be set to the swapfile's physical block offset for the
+  kernel to actually resume from disk — compute post-install via
+  `btrfs inspect-internal map-swapfile -r <path>` (btrfs) or
+  `filefrag -e <path>` (ext4). On btrfs, point `path` at a NoCOW `@swap`
+  subvolume; the kernel rejects hibernate from a CoW subvolume.
 - `sys.nix.{extraSubstituters,extraTrustedPublicKeys}` — additional binary caches.
 - `sys.determinate.enable` — use Determinate Nix's nixd daemon instead of upstream
   NixOS nix. When true, Determinate owns `/etc/nix/nix.conf`; the library skips its
@@ -131,6 +138,11 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   and LUKS root with no separate `/boot`, or GRUB will silently fail to find kernels.
   FIDO2-unlock (`sys.boot.fido2Unlock.enable = true`) requires the LUKS content spec
   to include `crypttabExtraOpts = [ "fido2-device=auto" ]` — this is consumer-owned.
+- **btrfs swap requires a NoCOW subvolume.** When using `sys.swap` on a btrfs
+  root, the consumer's disko spec must declare a dedicated `@swap` subvolume
+  for the swapfile to live on. Btrfs CoW + swap is forbidden by the kernel,
+  and snapshots of a swap subvolume break the file. `sys.swap.path` should
+  point inside that subvolume's mountpoint (e.g. `/swap/swapfile`).
 - **Login shell is not managed by home-manager.** Run `chsh -s $(which zsh)` once
   per fresh machine. An earlier activation hook did this automatically via
   `sudo chsh` but was removed — it prompted for a password on every switch and

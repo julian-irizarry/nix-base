@@ -125,6 +125,47 @@
         ];
       };
 
+      nixosSmokeConfigHibernate = mkSystem {
+        system = "x86_64-linux";
+        modules = [
+          (
+            { lib, config, ... }:
+            {
+              sys.hostname = "smoke-test-hibernate";
+              sys.username = "smoke-test-hibernate";
+              sys.swap.size = 1024;
+              sys.swap.path = "/swap/swapfile";
+              sys.swap.enableHibernate = true;
+              sys.swap.resumeOffset = 12345;
+
+              fileSystems."/" = {
+                device = "/dev/null";
+                fsType = "tmpfs";
+              };
+              fileSystems."/swap" = {
+                device = "/dev/disk/by-label/test-cryptroot";
+                fsType = "btrfs";
+                options = [
+                  "subvol=@swap"
+                  "noatime"
+                ];
+              };
+
+              assertions = [
+                {
+                  assertion = lib.elem "resume_offset=12345" config.boot.kernelParams;
+                  message = "expected 'resume_offset=12345' in boot.kernelParams";
+                }
+                {
+                  assertion = config.boot.resumeDevice == "/dev/disk/by-label/test-cryptroot";
+                  message = "expected boot.resumeDevice to resolve to the /swap mount device";
+                }
+              ];
+            }
+          )
+        ];
+      };
+
       nixosVmTest = import ./nixos/tests {
         inherit nixpkgs home-manager;
         inputs = sharedInputs;
@@ -152,6 +193,7 @@
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           nixos = nixosSmokeConfig.config.system.build.toplevel;
           nixos-determinate = nixosSmokeConfigDeterminate.config.system.build.toplevel;
+          nixos-hibernate = nixosSmokeConfigHibernate.config.system.build.toplevel;
           nixos-vm = nixosVmTest;
         }
       );

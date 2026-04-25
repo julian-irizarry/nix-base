@@ -24,6 +24,11 @@
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/3";
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -34,9 +39,13 @@
       treefmt-nix,
       vicinae,
       nixGL,
+      determinate,
+      disko,
       ...
     }:
     let
+      sharedInputs = { inherit determinate disko; };
+
       mkHome = import ./lib/mkHome.nix {
         inherit
           nixpkgs
@@ -47,6 +56,7 @@
       };
       mkSystem = import ./lib/mkSystem.nix {
         inherit nixpkgs home-manager;
+        inputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default
@@ -89,8 +99,35 @@
         ];
       };
 
+      nixosSmokeConfigDeterminate = mkSystem {
+        system = "x86_64-linux";
+        modules = [
+          {
+            sys.hostname = "smoke-test-determinate";
+            sys.username = "smoke-test-determinate";
+            sys.determinate.enable = true;
+            sys.boot.loader = "grub";
+            sys.boot.fido2Unlock.enable = true;
+            sys.nix.trustedUsers = [ "smoke-test-determinate" ];
+            sys.nix.extraSettings = {
+              nix-219-compat = true;
+              lazy-trees = false;
+              builders-use-substitutes = true;
+            };
+            sys.nix.netrcFile = "/etc/nix/netrc";
+            sys.nix.distributedBuilds = true;
+
+            fileSystems."/" = {
+              device = "/dev/null";
+              fsType = "tmpfs";
+            };
+          }
+        ];
+      };
+
       nixosVmTest = import ./nixos/tests {
         inherit nixpkgs home-manager;
+        inputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default
@@ -114,6 +151,7 @@
         }
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           nixos = nixosSmokeConfig.config.system.build.toplevel;
+          nixos-determinate = nixosSmokeConfigDeterminate.config.system.build.toplevel;
           nixos-vm = nixosVmTest;
         }
       );

@@ -9,6 +9,7 @@
   nixpkgs,
   home-manager,
   homeModulesDefault,
+  inputs,
 }:
 
 let
@@ -49,6 +50,7 @@ let
 in
 pkgs.testers.runNixOSTest {
   name = "nix-base-integration";
+  node.specialArgs = { inherit inputs; };
 
   nodes.machine =
     { ... }:

@@ -2,16 +2,21 @@
   nixpkgs,
   home-manager,
   homeModulesDefault,
+  inputs,
 }:
 
 {
   system,
   modules ? [ ],
   homeModules ? null,
+  extraInputs ? { },
 }:
 
 nixpkgs.lib.nixosSystem {
   inherit system;
+  specialArgs = {
+    inputs = inputs // extraInputs;
+  };
   modules = [
     ../nixos
     { nixpkgs.config.allowUnfree = true; }

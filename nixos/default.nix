@@ -19,6 +19,7 @@
     ./services/swap.nix
     ./users
     ./virtualisation
+    ./installer
   ];
 
   time.timeZone = config.sys.timezone;

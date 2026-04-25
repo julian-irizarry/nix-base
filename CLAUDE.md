@@ -45,6 +45,10 @@ arg to add more.
 - `nixos/default.nix` — imports every NixOS submodule.
 - `nixos/{boot,desktop,hardware,networking,nix,programs,security,services,users,virtualisation}/`
   — topical NixOS module folders. Feature-gated modules use `lib.mkIf config.sys.*`.
+- `nixos/installer/default.nix` — imports `disko.nixosModules.disko` and emits
+  `image.modules.iso-installer` with an `install-image` shell wrapper. Build with
+  `nh os build-image --image-variant=iso-installer -H <host>` or
+  `nix build .#nixosConfigurations.<host>.config.system.build.images.iso-installer`.
 
 ## The `my.*` option surface
 
@@ -83,18 +87,50 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
 - `sys.autoLogin` — skip the greeter (for FDE machines).
 - `sys.swap.{size,enableHibernate}` — swap file (size in MB) with optional hibernate.
 - `sys.nix.{extraSubstituters,extraTrustedPublicKeys}` — additional binary caches.
+- `sys.determinate.enable` — use Determinate Nix's nixd daemon instead of upstream
+  NixOS nix. When true, Determinate owns `/etc/nix/nix.conf`; the library skips its
+  own `experimental-features`, `auto-optimise-store`, and `nix.gc` wiring.
+- `sys.boot.loader` — enum `"systemd-boot" | "grub"`, default `"systemd-boot"`. GRUB
+  enables `enableCryptodisk` for encrypted root without a separate `/boot` partition.
+- `sys.boot.fido2Unlock.enable` — toggle `boot.initrd.systemd.{enable,fido2.enable}`
+  for YubiKey LUKS unlock. Consumers must set
+  `crypttabExtraOpts = [ "fido2-device=auto" ]` in their disko LUKS spec themselves.
+- `sys.nix.trustedUsers` — users added to `nix.settings.trusted-users` (plus root).
+- `sys.nix.extraSettings` — free-form attrs merged into `nix.settings` for keys not
+  worth first-class options.
+- `sys.nix.netrcFile` — path assigned to `nix.settings.netrc-file`. File is managed
+  outside nix (e.g., sops-provisioned).
+- `sys.nix.distributedBuilds` — toggle `nix.distributedBuilds`; consumers must also
+  declare `nix.buildMachines` or `sys.nix.extraSettings.builders`.
 
 ## Non-obvious patterns / gotchas
 
 - **SSH config is not owned by home-manager.** `latticectl` writes to
   `~/.ssh/config`, so `home/network/ssh.nix` renders `my.ssh.extraHosts` to
-  `~/.ssh/config.d/hm-hosts` and expects the user to `Include config.d/hm-hosts`
-  once at the top of `~/.ssh/config`. Do **not** switch this to `programs.ssh` —
-  latticectl will clobber it.
-- **1Password SSH agent wiring is deferred.** `home/platform/darwin.nix` is a
-  placeholder for the `IdentityAgent` socket path. Linux path is
-  `~/.1password/agent.sock`, macOS is under
-  `~/Library/Group Containers/.../agent.sock`. Configure per-platform, not shared.
+  `~/.ssh/config.d/hm-hosts` and expects the user to `Include config.d/*`
+  once at the top of `~/.ssh/config` so both `hm-hosts` and `identity-agent` are
+  picked up. Do **not** switch this to `programs.ssh` — latticectl will clobber it.
+- **1Password SSH agent is wired automatically.** `home/platform/linux.nix` and
+  `home/platform/darwin.nix` each write a `~/.ssh/config.d/identity-agent` snippet
+  with the platform-specific `IdentityAgent` socket path (Linux:
+  `~/.1password/agent.sock`, macOS:
+  `~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock`). The 1Password
+  app must be running with SSH agent enabled for it to resolve. Consumers that don't
+  use 1Password simply get a dead socket path, which OpenSSH tolerates.
+- **Determinate owns nix.conf when enabled.** When `sys.determinate.enable = true`,
+  `nixos/nix/default.nix` does not emit `experimental-features`,
+  `auto-optimise-store`, or `nix.gc` — Determinate manages those via
+  `/etc/nix/nix.conf` (read-only, auto-generated, reads `/etc/nix/nix.custom.conf`
+  via `!include`). Use `sys.nix.extraSettings` for extra keys; they land in
+  `nix.custom.conf`. Use the `extra-substituters` / `extra-trusted-public-keys`
+  additive keys (not `substituters` / `trusted-public-keys`) so Determinate's
+  built-in cache defaults (flakehub, cache.nixos.org) are preserved.
+- **GRUB+cryptodisk requires a compatible disko layout.** When
+  `sys.boot.loader = "grub"`, GRUB reads kernel/initrd from the encrypted root
+  directly — consumers must ensure their disko layout has an ESP (at `/boot/efi`)
+  and LUKS root with no separate `/boot`, or GRUB will silently fail to find kernels.
+  FIDO2-unlock (`sys.boot.fido2Unlock.enable = true`) requires the LUKS content spec
+  to include `crypttabExtraOpts = [ "fido2-device=auto" ]` — this is consumer-owned.
 - **Login shell is not managed by home-manager.** Run `chsh -s $(which zsh)` once
   per fresh machine. An earlier activation hook did this automatically via
   `sudo chsh` but was removed — it prompted for a password on every switch and

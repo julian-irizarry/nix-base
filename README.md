@@ -105,8 +105,15 @@ Activate: `home-manager switch --flake .#x86_64-linux` or `.#aarch64-darwin`
 | `sys.swap.enableHibernate`       | bool        | `false`              | Suspend-to-disk                                        |
 | `sys.nix.extraSubstituters`      | list        | `[]`                 | Binary cache URLs                                      |
 | `sys.nix.extraTrustedPublicKeys` | list        | `[]`                 | Cache public keys                                      |
+| `sys.nix.trustedUsers`           | list str    | `[]`                 | Added to nix.settings.trusted-users                    |
+| `sys.nix.extraSettings`          | attrs       | `{}`                 | Free-form merge into nix.settings                      |
+| `sys.nix.netrcFile`              | nullOr str  | `null`               | Path to externally-managed netrc                       |
+| `sys.nix.distributedBuilds`      | bool        | `false`              | Enable remote builders                                 |
+| `sys.determinate.enable`         | bool        | `false`              | Use Determinate Nix instead of upstream nix            |
+| `sys.boot.loader`                | enum        | `"systemd-boot"`     | Bootloader; "grub" enables cryptodisk                  |
+| `sys.boot.fido2Unlock.enable`    | bool        | `false`              | YubiKey LUKS auto-unlock in initrd                     |
 
-**Hardcoded** (always enabled): COSMIC DE, PipeWire, NetworkManager, systemd-boot,
+**Hardcoded** (always enabled): COSMIC DE, PipeWire, NetworkManager,
 fwupd, firewall, polkit, 1Password, Chromium, Obsidian, libvirt, flakes, zsh.
 
 ## Home-manager options (`my.*`)
@@ -159,6 +166,7 @@ nix-base/
 │   ├── boot/  desktop/  hardware/  networking/
 │   ├── nix/  programs/  security/  services/
 │   ├── users/  virtualisation/
+│   ├── installer/         # ISO installer image (disko + install-image wrapper)
 │   └── tests/             # VM integration tests
 └── darwin/                # future nix-darwin
 ```

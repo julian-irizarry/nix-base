@@ -109,6 +109,86 @@
         default = [ ];
         description = "Public keys for extra substituters.";
       };
+      trustedUsers = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Users added to nix.settings.trusted-users (in addition to root).";
+      };
+      extraSettings = lib.mkOption {
+        type = lib.types.attrsOf (
+          lib.types.oneOf [
+            lib.types.bool
+            lib.types.str
+            lib.types.int
+            (lib.types.listOf lib.types.str)
+          ]
+        );
+        default = { };
+        description = ''
+          Attrs merged into nix.settings. Use for keys that don't warrant
+          first-class options (e.g. nix-219-compat, lazy-trees,
+          builders-use-substitutes, builders = "@/etc/nix/machines").
+        '';
+      };
+      netrcFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = ''
+          If set, assigned to nix.settings.netrc-file. On-disk path to a file
+          managed outside nix (user-provisioned or sops-provisioned). Uses str
+          (not path) so the file stays at the literal path rather than being
+          copied into the Nix store.
+        '';
+      };
+      distributedBuilds = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable nix.distributedBuilds (remote builders). Consumers must also
+          provide nix.buildMachines or point builders at a file via
+          sys.nix.extraSettings.builders (e.g. "@/etc/nix/machines") — enabling
+          this alone without a builders list is a silent no-op.
+        '';
+      };
+    };
+
+    determinate = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Use Determinate Nix's nixd daemon instead of the upstream NixOS nix
+          module. When enabled, nix.conf management is delegated to Determinate's
+          tooling.
+        '';
+      };
+    };
+
+    boot = {
+      loader = lib.mkOption {
+        type = lib.types.enum [
+          "systemd-boot"
+          "grub"
+        ];
+        default = "systemd-boot";
+        description = ''
+          Bootloader choice. "grub" enables enableCryptodisk so kernel/initrd
+          can live on LUKS-encrypted root with no separate /boot. "systemd-boot"
+          remains the default for unencrypted or separately-booted layouts.
+        '';
+      };
+
+      fido2Unlock.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable boot.initrd.systemd.{enable,fido2.enable} so a LUKS volume
+          configured with crypttabExtraOpts = [ "fido2-device=auto" ] unlocks
+          via a tap on an enrolled YubiKey/FIDO2 device. Consumers own the
+          disko LUKS spec that triggers this — this option just enables the
+          initrd support.
+        '';
+      };
     };
   };
 }

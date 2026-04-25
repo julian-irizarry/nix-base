@@ -1,8 +1,10 @@
 # NixOS VM integration tests for the nix-base modules.
 #
 # These tests boot a QEMU VM and verify that services, users, and
-# configuration are wired correctly. COSMIC DE is excluded — it
-# requires a GPU and cannot run in a headless test VM.
+# configuration are wired correctly. COSMIC DE is disabled via
+# sys.desktop.cosmic.enable = false — it requires a GPU and cannot run
+# in a headless test VM. Hyprland is enabled to assert the session file
+# and noctalia wiring land, but the compositor is never launched.
 #
 # Run: nix build .#checks.x86_64-linux.nixos-vm
 {
@@ -21,13 +23,14 @@ let
   };
 
   # Base module set shared by all test VMs. Imports the full nixos/
-  # module tree but excludes COSMIC (no GPU in test VMs).
+  # module tree; compositor modules are gated via sys.desktop.*.
   baseTestModule =
     { lib, ... }:
     {
       imports = [
         ../options.nix
         ../boot
+        ../desktop
         ../hardware/nvidia.nix
         ../hardware/firmware.nix
         ../hardware/thunderbolt.nix
@@ -65,6 +68,8 @@ pkgs.testers.runNixOSTest {
       sys.username = "testuser";
       sys.docker.enable = true;
       sys.printing.enable = true;
+      sys.desktop.cosmic.enable = false;
+      sys.desktop.hyprland.enable = true;
 
       # Integrate home-manager for user config testing
       home-manager.useGlobalPkgs = true;
@@ -75,6 +80,7 @@ pkgs.testers.runNixOSTest {
         my.git.userName = "Test User";
         my.git.userEmail = "test@example.com";
         my.platform.nixGL.enable = false;
+        my.desktop.hyprland.enable = true;
         home.stateVersion = "25.05";
       };
 
@@ -144,5 +150,18 @@ pkgs.testers.runNixOSTest {
 
     with subtest("PipeWire is configured"):
         machine.succeed("test -e /etc/systemd/user/pipewire.service || test -e /etc/systemd/user/default.target.wants/pipewire.service || find /etc/systemd/user -name 'pipewire*' | grep -q pipewire")
+
+    # --- Hyprland + noctalia wiring (compositor itself never launched) ---
+    with subtest("hyprland wayland session file is installed"):
+        machine.succeed("test -e /run/current-system/sw/share/wayland-sessions/hyprland.desktop")
+
+    with subtest("cosmic session file is NOT installed (cosmic disabled)"):
+        machine.fail("test -e /run/current-system/sw/share/wayland-sessions/cosmic.desktop")
+
+    with subtest("noctalia-shell is available to the user"):
+        machine.succeed("su - testuser -c 'which noctalia-shell'")
+
+    with subtest("hypr-cycle-layout helper is on user PATH"):
+        machine.succeed("su - testuser -c 'which hypr-cycle-layout'")
   '';
 }

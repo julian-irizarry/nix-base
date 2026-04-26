@@ -18,6 +18,9 @@ in
 
       settings = {
         bind = kb.binds;
+        bindl = [
+          ", switch:Lid Switch, exec, noctalia-shell ipc call lockScreen lock"
+        ];
 
         general = {
           layout = "dwindle";

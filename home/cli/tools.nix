@@ -57,6 +57,15 @@
 
   home.packages = with pkgs; [
     nix-output-monitor
+    pciutils
+    usbutils
+    lshw
+    file
+    inetutils
+    dnsutils
+    nmap
+    powertop
+    llvmPackages.llvm
     ripgrep
     fd
     jq

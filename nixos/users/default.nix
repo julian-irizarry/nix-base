@@ -8,6 +8,8 @@
       "wheel"
       "networkmanager"
       "libvirtd"
+      "video"
+      "render"
     ];
   };
 

@@ -87,6 +87,11 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       enableShadows = true;
       enableBlurBehind = true;
       reverseScroll = false;
+      compactLockScreen = true;
+      lockScreenBlur = 0.70;
+      passwordChars = true;
+      lockScreenAnimations = true;
+      enableLockScreenCountdown = false;
     };
     ui = {
       fontDefault = "Fira Sans";

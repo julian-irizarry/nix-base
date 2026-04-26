@@ -31,11 +31,11 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
         ];
         theme = {
           light = {
-            name = "kanagawa";
+            name = "vicinae dark";
             icon_theme = "auto";
           };
           dark = {
-            name = "kanagawa";
+            name = "vicinae dark";
             icon_theme = "auto";
           };
         };

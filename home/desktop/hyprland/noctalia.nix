@@ -69,7 +69,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       panelBackgroundOpacity = 0.93;
       translucentWidgets = false;
       panelsAttachedToBar = true;
-      settingsPanelMode = "attached";
+      settingsPanelMode = "centered";
       settingsPanelSideBarCardStyle = false;
     };
     bar = {
@@ -86,7 +86,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       backgroundOpacity = 0.72;
       useSeparateOpacity = false;
       marginVertical = 2;
-      marginHorizontal = 500;
+      marginHorizontal = 385;
       frameThickness = 8;
       frameRadius = 12;
       outerCorners = false;
@@ -127,35 +127,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             groupedBorderOpacity = 1;
           }
           {
-            id = "MediaMini";
-            hideMode = "hidden";
-            hideWhenIdle = false;
-            maxWidth = 145;
-            useFixedWidth = false;
-            scrollingMode = "hover";
-            showAlbumArt = true;
-            showProgressRing = true;
-            showVisualizer = false;
-            showArtistFirst = true;
-            compactMode = false;
-            panelShowAlbumArt = true;
-            textColor = "none";
-            visualizerType = "linear";
-          }
-        ];
-        center = [
-          {
-            id = "Clock";
-            formatHorizontal = "HH:mm ddd, MMM dd";
-            formatVertical = "HH mm - dd MM";
-            tooltipFormat = "HH:mm ddd, MMM dd";
-            clockColor = "none";
-            useCustomFont = false;
-            customFont = "";
-          }
-        ];
-        right = [
-          {
             id = "SystemMonitor";
             compactMode = true;
             diskPath = "/";
@@ -178,6 +149,37 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             iconColor = "none";
           }
           {
+            id = "Spacer";
+          }
+          {
+            id = "AudioVisualizer";
+            visualizerType = "bars";
+            width = 100;
+            barWidth = 3;
+            barSpacing = 2;
+            barHeight = 20;
+            barBrightness = 100;
+            colorMode = "primary";
+            useFading = true;
+            hideWhenNoMedia = true;
+          }
+        ];
+        center = [
+          {
+            id = "Clock";
+            formatHorizontal = "HH:mm ddd, MMM dd";
+            formatVertical = "HH mm - dd MM";
+            tooltipFormat = "HH:mm ddd, MMM dd";
+            clockColor = "none";
+            useCustomFont = false;
+            customFont = "";
+          }
+        ];
+        right = [
+          {
+            id = "Spacer";
+          }
+          {
             id = "Volume";
             displayMode = "onhover";
             middleClickCommand = "pwvucontrol || pavucontrol";
@@ -186,7 +188,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
           }
           {
             id = "Brightness";
-            iconColor = "none";
           }
           {
             id = "Battery";
@@ -219,8 +220,18 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             colorizeDistroLogo = false;
             customIconPath = "";
           }
+          {
+            id = "SessionMenu";
+          }
         ];
       };
+    };
+    sessionMenu = {
+      largeButtonsStyle = false;
+      position = "top_right";
+      showHeader = true;
+      showKeybinds = true;
+      enableCountdown = false;
     };
     wallpaper = {
       enabled = true;

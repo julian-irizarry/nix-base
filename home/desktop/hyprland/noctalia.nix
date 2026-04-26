@@ -13,9 +13,45 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
   programs.noctalia-shell = {
     enable = true;
     package = noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    colors = {
+      mPrimary = "#F0B6D0";
+      mOnPrimary = "#0E0E10";
+      mSecondary = "#C3AED6";
+      mOnSecondary = "#0E0E10";
+      mTertiary = "#8BD5CA";
+      mOnTertiary = "#0E0E10";
+      mError = "#F38BA8";
+      mOnError = "#0E0E10";
+      mSurface = "#0E0E10";
+      mOnSurface = "#ECECF1";
+      mSurfaceVariant = "#18181B";
+      mOnSurfaceVariant = "#A1A1AA";
+      mOutline = "#2A2A30";
+      mShadow = "#000000";
+      mHover = "#222226";
+      mOnHover = "#ECECF1";
+    };
+    plugins = {
+      sources = [
+        {
+          enabled = true;
+          name = "Official Noctalia Plugins";
+          url = "https://github.com/noctalia-dev/noctalia-plugins";
+        }
+      ];
+      states = {
+        screen-recorder = {
+          enabled = true;
+          sourceUrl = "https://github.com/noctalia-dev/noctalia-plugins";
+        };
+        fancy-audiovisualizer = {
+          enabled = true;
+          sourceUrl = "https://github.com/noctalia-dev/noctalia-plugins";
+        };
+      };
+      version = 2;
+    };
   };
-
-  xdg.configFile."noctalia/colorschemes/Pastel/Pastel.json".source = ./colorschemes/pastel.json;
 
   wayland.windowManager.hyprland.settings = {
     exec-once = lib.mkAfter [ "noctalia-shell" ];
@@ -46,12 +82,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
 
   programs.noctalia-shell.settings = {
     settingsVersion = 59;
-    colorSchemes = {
-      predefinedScheme = "Pastel";
-      darkMode = true;
-      useWallpaperColors = false;
-      syncGsettings = true;
-    };
     general = {
       telemetryEnabled = false;
       enableShadows = true;
@@ -188,6 +218,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
           }
           {
             id = "Brightness";
+            iconColor = "primary";
           }
           {
             id = "Battery";
@@ -197,6 +228,10 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             showPowerProfiles = false;
             showNoctaliaPerformance = false;
             deviceNativePath = "__default__";
+          }
+          {
+            id = "plugin:screen-recorder";
+            iconColor = "tertiary";
           }
           {
             id = "NotificationHistory";
@@ -222,6 +257,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
           }
           {
             id = "SessionMenu";
+            iconColor = "error";
           }
         ];
       };

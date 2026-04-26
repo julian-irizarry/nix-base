@@ -90,6 +90,7 @@ in
       pkgs.hyprshot
       pkgs.hyprpicker
       pkgs.wf-recorder
+      pkgs.gpu-screen-recorder
     ];
   };
 }

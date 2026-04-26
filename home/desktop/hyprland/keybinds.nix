@@ -57,6 +57,8 @@ in
     "SUPER, Return, exec, wezterm"
     "CTRL, Space, exec, vicinae toggle"
 
+    "SUPER, Escape, exec, loginctl lock-session"
+
     "SUPER, Super_L, exec, noctalia-shell ipc call launcher toggle"
   ];
 }

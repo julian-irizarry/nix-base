@@ -38,9 +38,9 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
     # Blur noctalia bar/panels. Matches the layer namespace noctalia creates
     # ("noctalia-background-*") so panels feel translucent instead of opaque.
     layerrule = [
-      "ignore_alpha 0.5, ^(noctalia-background-.*)$"
-      "blur, ^(noctalia-background-.*)$"
-      "blurpopups, ^(noctalia-background-.*)$"
+      "ignorealpha 0.5, noctalia-background-.*"
+      "blur, noctalia-background-.*"
+      "blurpopups, noctalia-background-.*"
     ];
   };
 }

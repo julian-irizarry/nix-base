@@ -19,7 +19,7 @@ in
       settings = {
         bind = kb.binds;
 
-        windowrulev2 = [
+        windowrule = [
           "float, class:^([Vv]icinae|org\\.vicinaehq\\.vicinae)$"
           "center, class:^([Vv]icinae|org\\.vicinaehq\\.vicinae)$"
         ];

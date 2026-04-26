@@ -67,9 +67,7 @@
       smart_splits.apply_to_config(config)
 
       -- Must come after plugin apply_to_config calls — tabline otherwise
-      -- overwrites window_decorations. enable_wayland=false falls back
-      -- to X11 so NONE is actually honored (libdecor ignores it).
-      config.enable_wayland = false
+      -- overwrites window_decorations.
       config.window_decorations = 'NONE'
 
       return config

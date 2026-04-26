@@ -21,8 +21,8 @@ in
 
         general = {
           layout = "dwindle";
-          gaps_in = 4;
-          gaps_out = 8;
+          gaps_in = 2;
+          gaps_out = 4;
         };
 
         input = {
@@ -31,6 +31,16 @@ in
         };
 
         monitor = [ ",preferred,auto,1" ];
+
+        animations = {
+          enabled = true;
+          bezier = [ "ease, 0.25, 0.1, 0.25, 1.0" ];
+          animation = [
+            "workspaces, 1, 4, ease, slidefade"
+            "windows, 1, 3, ease"
+            "fade, 1, 4, ease"
+          ];
+        };
       };
 
       # Block syntax required by Hyprland 0.49+; old flat windowrule= is rejected.
@@ -75,6 +85,11 @@ in
     # the value before noctalia has started on a fresh session.
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
-    home.packages = [ kb.cycleLayout ];
+    home.packages = [
+      kb.cycleLayout
+      pkgs.hyprshot
+      pkgs.hyprpicker
+      pkgs.wf-recorder
+    ];
   };
 }

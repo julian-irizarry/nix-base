@@ -93,8 +93,8 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             showLabelsOnlyWhenOccupied = false;
             pillSize = 0.6;
             focusedColor = "error";
-            occupiedColor = "primary";
-            emptyColor = "primary";
+            occupiedColor = "none";
+            emptyColor = "none";
             unfocusedIconsOpacity = 1;
             colorizeIcons = false;
             iconScale = 0.8;
@@ -179,6 +179,10 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             hideWhenZero = false;
             hideWhenZeroUnread = false;
             unreadBadgeColor = "primary";
+            iconColor = "none";
+          }
+          {
+            id = "Brightness";
             iconColor = "none";
           }
           {

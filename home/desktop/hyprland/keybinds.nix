@@ -52,6 +52,8 @@ in
     "SUPER, O, togglesplit"
     "SUPER SHIFT, O, exec, ${cycleLayout}/bin/hypr-cycle-layout"
 
+    ", Print, exec, hyprshot -m region --freeze"
+
     "SUPER, Return, exec, wezterm"
     "CTRL, Space, exec, vicinae toggle"
 

@@ -15,8 +15,16 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
     package = noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
   };
 
+  xdg.configFile."noctalia/colorschemes/Pastel/Pastel.json".source = ./colorschemes/pastel.json;
+
   wayland.windowManager.hyprland.settings = {
     exec-once = lib.mkAfter [ "noctalia-shell" ];
+
+    input = {
+      touchpad = {
+        natural_scroll = true;
+      };
+    };
 
     decoration = {
       rounding = 8;
@@ -39,7 +47,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
   programs.noctalia-shell.settings = {
     settingsVersion = 59;
     colorSchemes = {
-      predefinedScheme = "Rose Pine";
+      predefinedScheme = "Pastel";
       darkMode = true;
       useWallpaperColors = false;
       syncGsettings = true;
@@ -48,7 +56,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       telemetryEnabled = false;
       enableShadows = true;
       enableBlurBehind = true;
-      reverseScroll = true;
+      reverseScroll = false;
     };
     bar = {
       barType = "floating";

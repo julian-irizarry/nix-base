@@ -58,6 +58,20 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       enableBlurBehind = true;
       reverseScroll = false;
     };
+    ui = {
+      fontDefault = "Fira Sans";
+      fontFixed = "Fira Mono";
+      fontDefaultScale = 1;
+      fontFixedScale = 1;
+      tooltipsEnabled = true;
+      scrollbarAlwaysVisible = true;
+      boxBorderEnabled = false;
+      panelBackgroundOpacity = 0.93;
+      translucentWidgets = false;
+      panelsAttachedToBar = true;
+      settingsPanelMode = "attached";
+      settingsPanelSideBarCardStyle = false;
+    };
     bar = {
       barType = "floating";
       position = "top";
@@ -70,8 +84,8 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       fontScale = 1;
       enableExclusionZoneInset = true;
       backgroundOpacity = 0.72;
-      useSeparateOpacity = true;
-      marginVertical = 0;
+      useSeparateOpacity = false;
+      marginVertical = 2;
       marginHorizontal = 500;
       frameThickness = 8;
       frameRadius = 12;
@@ -84,7 +98,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
           {
             id = "Launcher";
             icon = "rocket";
-            useDistroLogo = false;
+            useDistroLogo = true;
             enableColorization = false;
             colorizeSystemIcon = "none";
             colorizeSystemText = "none";
@@ -127,17 +141,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             panelShowAlbumArt = true;
             textColor = "none";
             visualizerType = "linear";
-          }
-          {
-            id = "ActiveWindow";
-            hideMode = "hidden";
-            maxWidth = 145;
-            useFixedWidth = false;
-            scrollingMode = "hover";
-            showIcon = true;
-            showText = true;
-            textColor = "none";
-            colorizeIcons = false;
           }
         ];
         center = [
@@ -182,14 +185,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             iconColor = "none";
           }
           {
-            id = "NotificationHistory";
-            showUnreadBadge = true;
-            hideWhenZero = false;
-            hideWhenZeroUnread = false;
-            unreadBadgeColor = "primary";
-            iconColor = "none";
-          }
-          {
             id = "Brightness";
             iconColor = "none";
           }
@@ -201,6 +196,14 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             showPowerProfiles = false;
             showNoctaliaPerformance = false;
             deviceNativePath = "__default__";
+          }
+          {
+            id = "NotificationHistory";
+            showUnreadBadge = true;
+            hideWhenZero = false;
+            hideWhenZeroUnread = false;
+            unreadBadgeColor = "primary";
+            iconColor = "none";
           }
           {
             id = "Settings";

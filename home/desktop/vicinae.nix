@@ -25,6 +25,10 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
       {
         "$schema" = "https://vicinae.com/schemas/config.json";
         pop_to_root_on_close = true;
+        favorites = [
+          "sessionizer:sessionizer"
+          "sessionizer:find-open-session"
+        ];
         theme = {
           light = {
             name = "kanagawa";

@@ -20,7 +20,10 @@ nixpkgs.lib.nixosSystem {
   };
   modules = [
     ../nixos
-    { nixpkgs.config.allowUnfree = true; }
+    {
+      nixpkgs.config.allowUnfree = true;
+      nixpkgs.config.allowUnfreePredicate = _: true;
+    }
   ]
   ++ modules
   ++ nixpkgs.lib.optionals (homeModules != null) [

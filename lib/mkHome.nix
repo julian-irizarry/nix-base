@@ -18,7 +18,10 @@ let
   forSystem =
     system:
     home-manager.lib.homeManagerConfiguration {
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
       extraSpecialArgs = { inherit noctalia; };
       modules = [
         ../home

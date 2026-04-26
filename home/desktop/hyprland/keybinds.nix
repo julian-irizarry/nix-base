@@ -46,13 +46,15 @@ in
     "SUPER SHIFT, 9, movetoworkspace, 9"
 
     "SUPER, W, killactive"
-    "SUPER, F, fullscreen, 0"
+    "SUPER, F, fullscreen, 1"
     "SUPER, G, togglefloating"
 
     "SUPER, O, togglesplit"
     "SUPER SHIFT, O, exec, ${cycleLayout}/bin/hypr-cycle-layout"
 
     "SUPER, Return, exec, wezterm"
-    "CTRL, Space, exec, vicinae"
+    "CTRL, Space, exec, vicinae toggle"
+
+    "SUPER, Super_L, exec, noctalia-shell ipc call launcher toggle"
   ];
 }

@@ -1,11 +1,5 @@
-{ lib, ... }:
-
-{
-  nixpkgs.config.allowUnfreePredicate =
-    pkg:
-    builtins.elem (lib.getName pkg) [
-      "vscode"
-      "vscode-extension-ms-vscode-remote-remote-containers"
-      "vscode-extension-ms-vscode-cpptools"
-    ];
-}
+# Unfree allowlist is set at the nixpkgs level in lib/mkSystem.nix and
+# lib/mkHome.nix (allowUnfree = true). Nothing to declare here for NixOS-
+# integrated home-manager; mkHome sets its own allowUnfree on the pkgs it
+# constructs.
+{ }

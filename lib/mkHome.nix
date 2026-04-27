@@ -17,18 +17,23 @@
 let
   forSystem =
     system:
-    home-manager.lib.homeManagerConfiguration {
+    let
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
       };
+    in
+    home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
       extraSpecialArgs = { inherit noctalia; };
       modules = [
         ../home
         vicinae.homeManagerModules.default
         noctalia.homeModules.default
-        { targets.genericLinux.nixGL.packages = nixGL.packages; }
       ]
+      ++ nixpkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux {
+        targets.genericLinux.nixGL.packages = nixGL.packages;
+      }
       ++ modules;
     };
 in

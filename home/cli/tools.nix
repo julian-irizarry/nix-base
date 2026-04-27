@@ -55,45 +55,49 @@
   programs.tealdeer.enable = true;
   programs.uv.enable = true;
 
-  home.packages = with pkgs; [
-    nix-output-monitor
-    pciutils
-    usbutils
-    lshw
-    dmidecode
-    file
-    inetutils
-    dnsutils
-    nmap
-    powertop
-    llvmPackages.llvm
-    ripgrep
-    fd
-    jq
-    yq-go
-    tree
-    wget
-    curl
-    unzip
-    zip
-    wl-clipboard
-    btop
-    gnumake
-    pkg-config
-    (lib.lowPrio rustup)
-    just
-    hyperfine
-    watchexec
+  home.packages =
+    with pkgs;
+    [
+      nix-output-monitor
+      pciutils
+      usbutils
+      file
+      inetutils
+      dnsutils
+      nmap
+      llvmPackages.llvm
+      ripgrep
+      fd
+      jq
+      yq-go
+      tree
+      wget
+      curl
+      unzip
+      zip
+      btop
+      gnumake
+      pkg-config
+      (lib.lowPrio rustup)
+      just
+      hyperfine
+      watchexec
 
-    # LSP servers and formatters
-    bash-language-server
-    clang-tools
-    gopls
-    lua-language-server
-    nixd
-    pyright
-    rust-analyzer
-    stylua
-    tree-sitter
-  ];
+      # LSP servers and formatters
+      bash-language-server
+      clang-tools
+      gopls
+      lua-language-server
+      nixd
+      pyright
+      rust-analyzer
+      stylua
+      tree-sitter
+    ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
+      lshw
+      dmidecode
+      powertop
+      wl-clipboard
+    ];
 }

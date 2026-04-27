@@ -88,6 +88,23 @@ in
     # the value before noctalia has started on a fresh session.
     dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
+    xdg.mime.enable = true;
+
+    # The HM hyprland module auto-enables xdg.portal with only
+    # xdg-desktop-portal-hyprland in extraPortals, and emits an
+    # ~/.config/environment.d/10-home-manager.conf line pinning
+    # NIX_XDG_DESKTOP_PORTAL_DIR to the user-profile portal dir. That
+    # value wins over the system-level one set by /etc/set-environment,
+    # so the portal frontend never finds gtk.portal even though the NixOS
+    # xdg.portal module installs it system-wide. Without the gtk backend,
+    # org.freedesktop.portal.Settings is missing entirely and noctalia's
+    # color-scheme dconf writes never reach kitty / libadwaita subscribers.
+    # Re-add gtk here so the user profile aggregates both portals.
+    xdg.portal = {
+      enable = true;
+      extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    };
+
     home.packages = [
       kb.cycleLayout
       pkgs.hyprshot

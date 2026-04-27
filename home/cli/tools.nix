@@ -60,6 +60,7 @@
     pciutils
     usbutils
     lshw
+    dmidecode
     file
     inetutils
     dnsutils

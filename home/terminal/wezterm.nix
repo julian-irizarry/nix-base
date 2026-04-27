@@ -68,7 +68,7 @@
 
       -- Must come after plugin apply_to_config calls — tabline otherwise
       -- overwrites window_decorations.
-      config.window_decorations = 'NONE'
+      config.window_decorations = '${if pkgs.stdenv.hostPlatform.isDarwin then "RESIZE" else "NONE"}'
 
       return config
     '';

@@ -36,6 +36,11 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hyprland.url = "github:hyprwm/Hyprland/v0.54.2";
+    hyprland-plugins = {
+      url = "github:hyprwm/hyprland-plugins";
+      inputs.hyprland.follows = "hyprland";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -43,7 +48,7 @@
   };
 
   outputs =
-    {
+    inputs@{
       self,
       nixpkgs,
       home-manager,
@@ -52,11 +57,12 @@
       nixGL,
       determinate,
       disko,
+      hyprland,
       noctalia,
       ...
     }:
     let
-      sharedInputs = { inherit determinate disko; };
+      sharedInputs = { inherit determinate disko hyprland; };
 
       mkHome = import ./lib/mkHome.nix {
         inherit
@@ -64,12 +70,16 @@
           home-manager
           vicinae
           nixGL
-          noctalia
+          inputs
           ;
       };
       mkSystem = import ./lib/mkSystem.nix {
-        inherit nixpkgs home-manager noctalia;
-        inputs = sharedInputs;
+        inherit
+          nixpkgs
+          home-manager
+          inputs
+          ;
+        nixosInputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default
@@ -185,8 +195,12 @@
       };
 
       nixosVmTest = import ./nixos/tests {
-        inherit nixpkgs home-manager noctalia;
-        inputs = sharedInputs;
+        inherit
+          nixpkgs
+          home-manager
+          inputs
+          ;
+        nixosInputs = sharedInputs;
         homeModulesDefault = [
           ./home
           vicinae.homeManagerModules.default

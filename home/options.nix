@@ -56,6 +56,16 @@
       '';
     };
 
+    ssh.onePassword.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Write a 1Password SSH agent IdentityAgent snippet into
+        ~/.ssh/config.d/identity-agent. The 1Password app must be running
+        with SSH agent enabled for it to resolve.
+      '';
+    };
+
     ssh.extraHosts = lib.mkOption {
       type = lib.types.attrsOf lib.types.attrs;
       default = { };
@@ -149,6 +159,15 @@
           description = ''
             Desktop shell launched on hyprland login. Enum currently fixed at
             "noctalia"; shaped for future alternatives.
+          '';
+        };
+
+        plugins = lib.mkOption {
+          type = lib.types.listOf lib.types.package;
+          default = [ ];
+          description = ''
+            Hyprland plugin packages to enable. Packages come from
+            pkgs.hyprlandPlugins (e.g. hyprexpo, hy3, hyprbars).
           '';
         };
 

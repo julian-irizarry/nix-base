@@ -2,12 +2,24 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 
 let
+  system = pkgs.stdenv.hostPlatform.system;
   cfg = config.my.desktop.hyprland;
   kb = import ./keybinds.nix { inherit pkgs; };
+  allPlugins = [
+    inputs.hyprland-plugins.packages.${system}.hyprexpo
+  ]
+  ++ cfg.plugins;
+  # HM's plugins option uses exec-once which races with UWSM. Write
+  # plugin directives to a separate file and source it — sourceFirst
+  # ensures source lines land before keybinds in the generated config.
+  pluginConf = pkgs.writeText "hypr-plugins.conf" (
+    lib.concatMapStringsSep "\n" (p: "plugin = ${p}/lib/lib${p.pname}.so") allPlugins + "\n"
+  );
 in
 {
   imports = [ ./noctalia.nix ];
@@ -15,8 +27,23 @@ in
   config = lib.mkIf (cfg.enable && pkgs.stdenv.hostPlatform.isLinux) {
     wayland.windowManager.hyprland = {
       enable = true;
+      package = inputs.hyprland.packages.${system}.hyprland;
 
       settings = {
+        source = [ "${pluginConf}" ];
+
+        gesture = [
+          "3, horizontal, workspace"
+        ];
+
+        "plugin:hyprexpo" = {
+          columns = 3;
+          gap_size = 5;
+          bg_col = "rgb(111111)";
+          workspace_method = "first 1";
+          enable_gesture = false;
+        };
+
         bind = kb.binds;
         bindl = [
           ", switch:Lid Switch, exec, noctalia-shell ipc call lockScreen lock"
@@ -24,8 +51,8 @@ in
 
         general = {
           layout = "dwindle";
-          gaps_in = 2;
-          gaps_out = 4;
+          gaps_in = 4;
+          gaps_out = 8;
         };
 
         input = {
@@ -46,39 +73,46 @@ in
         };
       };
 
-      # Block syntax required by Hyprland 0.49+; old flat windowrule= is rejected.
       extraConfig = ''
         windowrule {
           name = vicinae
-          float = true
-          center = true
-          match {
-            class = ^([Vv]icinae|org\.vicinaehq\.vicinae)$
-          }
+          match:class = ^([Vv]icinae|org\.vicinaehq\.vicinae)$
+          float = on
+          center = on
         }
 
         windowrule {
-          name = wezterm-ws1
+          name = wezterm
+          match:class = ^(org\.wezfurlong\.wezterm)$
           workspace = 1
-          match {
-            class = ^(org\.wezfurlong\.wezterm)$
-          }
         }
 
         windowrule {
-          name = chrome-ws2
+          name = wezterm-border
+          enable = false
+          match:class = ^(org\.wezfurlong\.wezterm)$
+          border_size = 2
+          border_color = rgba(F0B6D0ee) rgba(8BD5CAee) 45deg
+        }
+
+        windowrule {
+          name = kitty-border
+          enable = false
+          match:class = ^(kitty)$
+          border_size = 2
+          border_color = rgba(F0B6D0ee) rgba(8BD5CAee) 45deg
+        }
+
+        windowrule {
+          name = chrome
+          match:class = ^([Gg]oogle-chrome)$
           workspace = 2
-          match {
-            class = ^([Gg]oogle-chrome)$
-          }
         }
 
         windowrule {
-          name = discord-ws3
+          name = discord
+          match:class = ^([Dd]iscord)$
           workspace = 3
-          match {
-            class = ^([Dd]iscord)$
-          }
         }
       '';
     };
@@ -104,7 +138,10 @@ in
       enable = true;
       extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
       config.hyprland = {
-        default = [ "gtk" "hyprland" ];
+        default = [
+          "gtk"
+          "hyprland"
+        ];
       };
     };
 

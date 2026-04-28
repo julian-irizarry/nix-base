@@ -59,6 +59,8 @@ in
 
     "SUPER, Escape, exec, noctalia-shell ipc call lockScreen lock"
 
-    "SUPER, Super_L, exec, noctalia-shell ipc call launcher toggle"
+    "SUPER, Super_L, hyprexpo:expo, toggle"
+
+    "SUPER, Space, exec, noctalia-shell ipc call launcher toggle"
   ];
 }

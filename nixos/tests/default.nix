@@ -12,7 +12,7 @@
   home-manager,
   homeModulesDefault,
   inputs,
-  noctalia,
+  nixosInputs,
 }:
 
 let
@@ -54,7 +54,9 @@ let
 in
 pkgs.testers.runNixOSTest {
   name = "nix-base-integration";
-  node.specialArgs = { inherit inputs; };
+  node.specialArgs = {
+    inputs = nixosInputs;
+  };
 
   nodes.machine =
     { ... }:
@@ -74,7 +76,7 @@ pkgs.testers.runNixOSTest {
       # Integrate home-manager for user config testing
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = { inherit noctalia; };
+      home-manager.extraSpecialArgs = { inherit inputs; };
       home-manager.users.testuser = {
         imports = homeModulesDefault;
         my.git.userName = "Test User";
@@ -122,7 +124,7 @@ pkgs.testers.runNixOSTest {
         machine.succeed("test -e /run/cups/cups.sock || systemctl is-enabled cups.socket")
 
     with subtest("libvirtd is running"):
-        machine.wait_for_unit("libvirtd.service")
+        machine.wait_for_unit("libvirtd.socket")
 
     with subtest("firewall is enabled"):
         machine.wait_for_unit("firewall.service")

@@ -11,9 +11,9 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
   # On NixOS the system handles all of this natively.
   targets.genericLinux.enable = config.my.platform.nixGL.enable;
 
-  # Write the 1Password SSH agent socket path into config.d so it is
-  # included alongside hm-hosts.
-  home.file.".ssh/config.d/identity-agent".text = ''
-    IdentityAgent ~/.1password/agent.sock
-  '';
+  home.file.".ssh/config.d/identity-agent" = lib.mkIf config.my.ssh.onePassword.enable {
+    text = ''
+      IdentityAgent ~/.1password/agent.sock
+    '';
+  };
 }

@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  noctalia,
+  inputs,
   ...
 }:
 
@@ -34,7 +34,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
 
   programs.noctalia-shell = {
     enable = true;
-    package = noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
     colors = {
       mPrimary = "#F0B6D0";
       mOnPrimary = "#0E0E10";
@@ -85,7 +85,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
     };
 
     decoration = {
-      rounding = 8;
+      rounding = 12;
       rounding_power = 2;
       shadow = {
         enabled = true;

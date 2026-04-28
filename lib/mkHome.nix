@@ -3,7 +3,7 @@
   home-manager,
   vicinae,
   nixGL,
-  noctalia,
+  inputs,
 }:
 
 {
@@ -25,11 +25,11 @@ let
     in
     home-manager.lib.homeManagerConfiguration {
       inherit pkgs;
-      extraSpecialArgs = { inherit noctalia; };
+      extraSpecialArgs = { inherit inputs; };
       modules = [
         ../home
         vicinae.homeManagerModules.default
-        noctalia.homeModules.default
+        inputs.noctalia.homeModules.default
       ]
       ++ nixpkgs.lib.optional pkgs.stdenv.hostPlatform.isLinux {
         targets.genericLinux.nixGL.packages = nixGL.packages;

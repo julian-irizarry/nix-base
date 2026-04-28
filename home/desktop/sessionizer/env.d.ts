@@ -1,8 +1,7 @@
-/// <reference types="@vicinae/api">
-
 /*
- * This file is auto-generated from the extension's manifest.
- * Do not modify manually. Instead, update the `package.json` file.
+ * Shared type declarations for the sessionizer extension.
+ * Preferences and arguments are the same regardless of launcher
+ * (vicinae on Linux, raycast on Darwin).
  */
 
 type ExtensionPreferences = {};

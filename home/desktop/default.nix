@@ -4,6 +4,6 @@
     ./cosmic.nix
     ./hyprland
     ./vicinae.nix
-    ./vicinae-sessionizer
+    ./sessionizer
   ];
 }

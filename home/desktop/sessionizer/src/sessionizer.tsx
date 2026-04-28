@@ -8,7 +8,7 @@ import {
   showToast,
   Toast,
   closeMainWindow,
-} from "@vicinae/api";
+} from "./launcher";
 import { readdirSync } from "fs";
 import { getBackend, type TerminalBackend } from "./backends";
 import { loadConfig, type Config } from "./config";
@@ -250,7 +250,7 @@ export default function Sessionizer() {
                 />
                 <Action.CopyToClipboard
                   title="Copy Path"
-                  shortcut={"copy-path"}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
                   content={e.path}
                 />
                 <Action

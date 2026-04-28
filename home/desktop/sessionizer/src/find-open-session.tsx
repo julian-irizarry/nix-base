@@ -7,7 +7,7 @@ import {
   showToast,
   Toast,
   closeMainWindow,
-} from "@vicinae/api";
+} from "./launcher";
 import { loadConfig } from "./config";
 import { getBackend, type TerminalBackend, type OpenSession } from "./backends";
 import { log } from "./log";

@@ -16,15 +16,18 @@ export interface TerminalBackend {
 
 export type BackendName = "wezterm" | "kitty";
 
-export async function getBackend(name: BackendName): Promise<TerminalBackend> {
+export async function getBackend(
+  name: BackendName,
+  bin?: string,
+): Promise<TerminalBackend> {
   switch (name) {
     case "kitty": {
       const { KittyBackend } = await import("./kitty");
-      return new KittyBackend();
+      return new KittyBackend(bin);
     }
     case "wezterm": {
       const { WeztermBackend } = await import("./wezterm");
-      return new WeztermBackend();
+      return new WeztermBackend(bin);
     }
   }
 }

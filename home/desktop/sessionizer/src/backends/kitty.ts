@@ -9,29 +9,35 @@ function kittenArgs(rest: string[]): string[] {
   return ["@", "--to", KITTY_SOCKET, ...rest];
 }
 
-function launchTab(title: string, cwd: string, cmd: string[]): void {
-  runDetached(
-    "kitten",
-    kittenArgs([
-      "launch",
-      "--type=tab",
-      `--title=${title}`,
-      `--cwd=${cwd}`,
-      ...cmd,
-    ]),
-  );
-}
-
 export class KittyBackend implements TerminalBackend {
+  private readonly bin: string;
+
+  constructor(bin?: string) {
+    this.bin = bin ?? "kitten";
+  }
+
+  private launchTab(title: string, cwd: string, cmd: string[]): void {
+    runDetached(
+      this.bin,
+      kittenArgs([
+        "launch",
+        "--type=tab",
+        `--title=${title}`,
+        `--cwd=${cwd}`,
+        ...cmd,
+      ]),
+    );
+  }
+
   async addTabToFocused(cwd: string, cmd: string[] = []) {
     log.info("kitty", "adding tab", { cwd });
-    launchTab(basename(cwd), cwd, cmd);
+    this.launchTab(basename(cwd), cwd, cmd);
   }
 
   async addPaneToFocused(cwd: string, cmd: string[] = []) {
     log.info("kitty", "splitting current window", { cwd });
     runDetached(
-      "kitten",
+      this.bin,
       kittenArgs([
         "launch",
         "--type=window",
@@ -47,7 +53,7 @@ export class KittyBackend implements TerminalBackend {
       sessionId,
       cwd,
     });
-    launchTab(sessionId, cwd, cmd);
+    this.launchTab(sessionId, cwd, cmd);
   }
 
   async focusSession(_session: OpenSession): Promise<void> {

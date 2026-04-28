@@ -153,6 +153,20 @@ Missing deps don't break noctalia — the affected widgets just show no data.
 | `my.desktop.hyprland.enable` | bool        | `false`                | Hyprland home config (keybinds, window rules, shell) |
 | `my.desktop.hyprland.shell`  | enum        | `"noctalia"`           | Shell launched on hyprland login                     |
 
+### Sessionizer on macOS
+
+On Linux the sessionizer ships as a vicinae extension built in the nix
+sandbox and dropped into `~/.local/share/vicinae/extensions/` — vicinae
+auto-discovers it.
+
+Raycast on macOS does not auto-discover extensions dropped into
+`~/.config/raycast/extensions/`. Local extensions must be registered with
+the running Raycast app via `ray develop`. Home activation therefore only
+_stages source_ for raycast at `~/Developer/raycast-extensions/sessionizer/`;
+you must run a one-time `npm ci && npx @raycast/api develop` from that
+directory to register the extension. After that, subsequent activations
+keep the staged source in sync and the registration persists.
+
 ## Development
 
 ```bash

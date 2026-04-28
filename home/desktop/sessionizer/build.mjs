@@ -1,4 +1,4 @@
-import { build } from "esbuild";
+import { build, context } from "esbuild";
 import { readdirSync } from "fs";
 import { join } from "path";
 
@@ -6,7 +6,7 @@ const entryPoints = readdirSync("src")
   .filter((f) => f.endsWith(".tsx"))
   .map((f) => join("src", f));
 
-await build({
+const opts = {
   entryPoints,
   bundle: true,
   outdir: "dist",
@@ -15,5 +15,11 @@ await build({
   target: "node20",
   jsx: "automatic",
   external: ["@raycast/api", "react", "react-dom"],
-  watch: process.argv.includes("--watch"),
-});
+};
+
+if (process.argv.includes("--watch")) {
+  const ctx = await context(opts);
+  await ctx.watch();
+} else {
+  await build(opts);
+}

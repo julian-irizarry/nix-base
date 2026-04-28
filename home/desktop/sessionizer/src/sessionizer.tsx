@@ -116,8 +116,8 @@ export default function Sessionizer() {
       roots: cfg.roots,
       mode,
     });
-    getBackend(cfg.terminal).then(setBackend);
-  }, [cfg.terminal]);
+    getBackend(cfg.terminal, cfg.terminalBin).then(setBackend);
+  }, [cfg.terminal, cfg.terminalBin]);
 
   const toggleMode = () => {
     const next: Mode = mode === "nvim" ? "shell" : "nvim";

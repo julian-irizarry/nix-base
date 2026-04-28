@@ -20,7 +20,7 @@ export default function FindOpenSession() {
   useEffect(() => {
     (async () => {
       log.info("find-open", "init", { terminal: cfg.terminal });
-      const b = await getBackend(cfg.terminal);
+      const b = await getBackend(cfg.terminal, cfg.terminalBin);
       setBackend(b);
       try {
         const sessions = await b.listOpenSessions();

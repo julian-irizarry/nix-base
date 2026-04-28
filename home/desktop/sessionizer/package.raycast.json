@@ -25,8 +25,8 @@
   ],
   "preferences": [],
   "scripts": {
-    "build": "node build.mjs",
-    "dev": "node build.mjs --watch"
+    "build": "ray build",
+    "dev": "ray develop"
   },
   "dependencies": {
     "@raycast/api": "^1.93.0"
@@ -34,7 +34,6 @@
   "devDependencies": {
     "@types/node": "^24.9.2",
     "@types/react": "^18.3.23",
-    "esbuild": "^0.25.0",
     "typescript": "^5.9.2"
   }
 }

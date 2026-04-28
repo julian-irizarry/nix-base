@@ -55,49 +55,42 @@ let
     };
   };
 
-  # Darwin: build as a raycast extension via esbuild.
-  raycastBuild = pkgs.buildNpmPackage {
-    pname = "sessionizer-raycast";
-    version = "0.1.0";
-    src = cleanSrc;
+  # Darwin: raycast refuses to auto-discover extensions dropped into
+  # ~/.config/raycast/extensions/. The only supported way to register a
+  # local extension is `ray develop`, which expects *source* (not a built
+  # bundle) in a *writable* directory with node_modules installed.
+  #
+  # So instead of building, we stage source into a nix-store path with the
+  # raycast manifest + lockfile + launcher wiring in place, then the home
+  # activation copies that tree to a writable dev path where the user runs
+  # `npm ci && npx @raycast/api develop` once to register the extension.
+  raycastSrc = pkgs.runCommand "sessionizer-src-raycast" { } ''
+    cp -r ${cleanSrc} $out
+    chmod -R +w $out
+    mv $out/package.raycast.json $out/package.json
+    mv $out/package-lock.raycast.json $out/package-lock.json
+    rm -f $out/package-lock.json.vicinae 2>/dev/null || true
+    echo 'export * from "./raycast";' > $out/src/launcher/index.ts
+    # build.mjs is vicinae-specific (esbuild scaffolding); raycast uses `ray build`.
+    rm -f $out/build.mjs
+  '';
 
-    # TODO: regenerate once package.raycast.json lockfile is created.
-    # For now this will need a package-lock.json that covers raycast deps.
-    npmDepsHash = lib.fakeHash;
-
-    preBuild = ''
-      # Swap in the raycast manifest and launcher.
-      cp package.raycast.json package.json
-      echo 'export * from "./raycast";' > src/launcher/index.ts
-    '';
-
-    buildPhase = ''
-      runHook preBuild
-      node build.mjs
-      runHook postBuild
-    '';
-
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out
-      cp -r dist/. $out/
-      cp -r assets $out/
-      cp package.json $out/
-      runHook postInstall
-    '';
-
-    meta = {
-      description = "Sessionizer extension for raycast";
-      license = lib.licenses.mit;
-    };
-  };
+  # Raycast (Darwin) spawns extensions under launchd's minimal PATH, so
+  # bare `wezterm`/`kitten` command names don't resolve. Thread an absolute
+  # /nix/store path through sessionizer.json so the extension can execFile
+  # directly. Harmless on vicinae — it just ignores the field.
+  terminalBin =
+    if cfg.terminal == "kitty" then "${pkgs.kitty}/bin/kitten" else "${pkgs.wezterm}/bin/wezterm";
 
   sessionizerJson = pkgs.writeText "sessionizer.json" (
     builtins.toJSON {
       roots = cfg.codeRoots;
       terminal = cfg.terminal;
+      inherit terminalBin;
     }
   );
+
+  raycastDevPath = "Developer/raycast-extensions/sessionizer";
 in
 lib.mkIf cfg.enableSessionizer (
   lib.mkMerge [
@@ -109,9 +102,22 @@ lib.mkIf cfg.enableSessionizer (
       xdg.dataFile."vicinae/extensions/sessionizer".source = vicinaeBuild;
     })
 
-    # Darwin: install into raycast extensions dir.
+    # Darwin: stage source into a writable dev path and refresh node_modules
+    # on every activation. User runs `npx @raycast/api develop` once from
+    # ~/${raycastDevPath} to register with Raycast; the registration persists
+    # across activations even after the watcher exits.
     (lib.mkIf isDarwin {
-      home.file.".config/raycast/extensions/sessionizer".source = raycastBuild;
+      home.activation.stageSessionizerRaycast = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        dev="$HOME/${raycastDevPath}"
+        $DRY_RUN_CMD mkdir -p "$dev"
+        # rsync preserves the dir so `ray develop` state (metadata/, built
+        # bundles, .raycastignore) survives re-activation. --chmod rewrites
+        # read-only nix-store permissions so npm/ray can mutate files.
+        $DRY_RUN_CMD ${pkgs.rsync}/bin/rsync -a --delete \
+          --chmod=u+w,go-w \
+          --exclude node_modules --exclude metadata --exclude .raycast \
+          "${raycastSrc}/" "$dev/"
+      '';
     })
   ]
 )

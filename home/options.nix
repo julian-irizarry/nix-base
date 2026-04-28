@@ -151,6 +151,26 @@
             "noctalia"; shaped for future alternatives.
           '';
         };
+
+        idle = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Enable hypridle for automatic screen locking and display power management.";
+          };
+
+          lockTimeout = lib.mkOption {
+            type = lib.types.int;
+            default = 300;
+            description = "Seconds of inactivity before locking the screen.";
+          };
+
+          displayOffTimeout = lib.mkOption {
+            type = lib.types.int;
+            default = 600;
+            description = "Seconds of inactivity before turning off the display.";
+          };
+        };
       };
     };
   };

@@ -10,6 +10,28 @@ let
   cfg = config.my.desktop.hyprland;
 in
 lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLinux) {
+  services.hypridle = lib.mkIf cfg.idle.enable {
+    enable = true;
+    settings = {
+      general = {
+        lock_cmd = "pidof noctalia-shell && noctalia-shell ipc call lockScreen lock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = "hyprctl dispatch dpms on";
+      };
+      listener = [
+        {
+          timeout = cfg.idle.lockTimeout;
+          on-timeout = "loginctl lock-session";
+        }
+        {
+          timeout = cfg.idle.displayOffTimeout;
+          on-timeout = "hyprctl dispatch dpms off";
+          on-resume = "hyprctl dispatch dpms on";
+        }
+      ];
+    };
+  };
+
   programs.noctalia-shell = {
     enable = true;
     package = noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
@@ -118,8 +140,8 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       contentPadding = 2;
       fontScale = 1;
       enableExclusionZoneInset = true;
-      backgroundOpacity = 0.72;
-      useSeparateOpacity = false;
+      backgroundOpacity = 0.95;
+      useSeparateOpacity = true;
       marginVertical = 2;
       marginHorizontal = 385;
       frameThickness = 8;

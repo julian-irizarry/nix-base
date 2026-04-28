@@ -1,0 +1,40 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "sessionizer",
+  "title": "Sessionizer",
+  "description": "Fuzzy-find a project directory and open it in your terminal (wezterm workspaces or kitty tabs); can also jump to an already-open project.",
+  "categories": ["Productivity", "Developer Tools"],
+  "license": "MIT",
+  "author": "julian-irizarry",
+  "icon": "icon.png",
+  "commands": [
+    {
+      "name": "sessionizer",
+      "title": "Sessionizer",
+      "subtitle": "Jump to a project directory",
+      "description": "Pick a directory under the configured roots and open it in a terminal tab or workspace.",
+      "mode": "view"
+    },
+    {
+      "name": "find-open-session",
+      "title": "Find Open Session",
+      "subtitle": "Jump to an already-open wezterm workspace",
+      "description": "Lists wezterm workspaces currently running and switches to the chosen one.",
+      "mode": "view"
+    }
+  ],
+  "preferences": [],
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch"
+  },
+  "dependencies": {
+    "@raycast/api": "^1.93.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/react": "^18.3.23",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.2"
+  }
+}

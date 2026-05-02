@@ -3,7 +3,18 @@ local ssh = require("utils.ssh")
 
 local M = {}
 
-function M.setup()
+local function is_claude_code(pane)
+	local title = pane.title or ""
+	if title:find("Claude Code") then
+		return true
+	end
+	-- Claude Code titles: braille spinner icon (U+2800-U+28FF) or ✳ (U+2733)
+	-- followed by a space. Both are 3-byte UTF-8 starting with 0xE2.
+	local b1, b2 = title:byte(1, 2)
+	return b1 == 0xE2 and (b2 == 0x9C or (b2 >= 0xA0 and b2 <= 0xA3)) and title:byte(4) == 0x20
+end
+
+function M.setup(bell_tabs)
 	local tabline = wezterm.plugin.require("https://github.com/michaelbrusegard/tabline.wez")
 
 	tabline.setup({
@@ -13,16 +24,16 @@ function M.setup()
 			theme_overrides = {
 				normal_mode = {
 					a = { bg = "#ff9da4" },
-					b = { bg = "transparent" },
-					c = { bg = "transparent" },
-					x = { bg = "transparent" },
-					y = { bg = "transparent" },
+					b = { bg = "#000000" },
+					c = { bg = "#000000" },
+					x = { bg = "#000000" },
+					y = { bg = "#000000" },
 					z = { bg = "#ff9da4" },
 				},
 				tab = {
-					active = { fg = "#ffffff", bg = "rgba(38, 35, 58, 0.6)" },
-					inactive = { bg = "transparent" },
-					inactive_hover = { bg = "rgba(38, 35, 58, 0.4)" },
+					active = { fg = "#ffffff", bg = "#1a1826" },
+					inactive = { bg = "#000000" },
+					inactive_hover = { bg = "#18162a" },
 				},
 			},
 			tabs_enabled = true,
@@ -50,9 +61,16 @@ function M.setup()
 			tabline_b = {},
 			tabline_c = { " " },
 
-			-- ACTIVE TAB: Neovim icon + parent/cwd (or SSH host) + zoom indicator
 			tab_active = {
 				"",
+				{ Foreground = { Color = "#E8885C" } },
+				function(tab)
+					if not is_claude_code(tab.active_pane) then
+						return ""
+					end
+					return (tab.active_pane.title or ""):match("^(%S+)%s") or ""
+				end,
+				"ResetAttributes",
 				{
 					"process",
 					icons_only = true,
@@ -60,6 +78,9 @@ function M.setup()
 						nvim = { wezterm.nerdfonts.custom_neovim, color = { fg = "#a6e3a1" } },
 						ssh = { wezterm.nerdfonts.md_server, color = { fg = "#f5c2e7" } },
 					},
+					cond = function(tab)
+						return not is_claude_code(tab.active_pane)
+					end,
 					padding = { left = 0, right = 0 },
 				},
 				" ",
@@ -94,9 +115,17 @@ function M.setup()
 				{ "zoomed", padding = 0 },
 			},
 
-			-- INACTIVE TAB: Neovim icon + cwd (or SSH host)
+			-- INACTIVE TAB: icon + cwd (or SSH host)
 			tab_inactive = {
 				"",
+				{ Foreground = { Color = "#E8885C" } },
+				function(tab)
+					if not is_claude_code(tab.active_pane) then
+						return ""
+					end
+					return (tab.active_pane.title or ""):match("^(%S+)%s") or ""
+				end,
+				"ResetAttributes",
 				{
 					"process",
 					icons_only = true,
@@ -104,6 +133,9 @@ function M.setup()
 						nvim = { wezterm.nerdfonts.custom_neovim },
 						ssh = { wezterm.nerdfonts.md_server },
 					},
+					cond = function(tab)
+						return not is_claude_code(tab.active_pane)
+					end,
 					padding = { left = 0, right = 0 },
 				},
 				" ",
@@ -140,6 +172,26 @@ function M.setup()
 		},
 		extensions = {},
 	})
+
+	-- Wrap tabline's tab renderer to tint inactive tabs with unseen bells.
+	-- tabs.lua builds: [1-2] separator attrs, [3] separator glyph,
+	-- [4-5] inactive attrs (fg, bg), components…, [n-2,n-1] separator attrs, [n] glyph.
+	local tabs_mod = require("tabline.tabs")
+	local orig_set_title = tabs_mod.set_title
+	tabs_mod.set_title = function(tab, hover)
+		local result = orig_set_title(tab, hover)
+		if result and not tab.is_active and bell_tabs[tab.tab_id] then
+			local bell_bg = "#3a1a28"
+			result[1] = { Foreground = { Color = bell_bg } }
+			result[#result - 2] = { Foreground = { Color = bell_bg } }
+			for i = 4, #result - 3 do
+				if result[i].Background then
+					result[i] = { Background = { Color = bell_bg } }
+				end
+			end
+		end
+		return result
+	end
 
 	return tabline
 end

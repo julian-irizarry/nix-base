@@ -103,6 +103,17 @@ in
         [ -f "$HOME/.zshenv.local" ] && source "$HOME/.zshenv.local"
       '')
       ''
+        # Ring the bell after commands that take longer than 5s so
+        # wezterm's visual_bell + inactive_tab_alert can surface it.
+        zmodload zsh/datetime
+        __notify_preexec() { typeset -gi __cmd_start=$EPOCHSECONDS }
+        __notify_precmd() {
+          (( __cmd_start > 0 && EPOCHSECONDS - __cmd_start >= 5 )) && printf '\a'
+          __cmd_start=0
+        }
+        add-zsh-hook preexec __notify_preexec
+        add-zsh-hook precmd __notify_precmd
+
         # Shift+Enter (paired with kitty's send_text all \x1b[13;2u) accepts
         # the zsh-autosuggestions ghost text without executing.
         bindkey '^[[13;2u' autosuggest-accept

@@ -120,7 +120,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
       capsuleColorKey = "none";
       widgetSpacing = 6;
       contentPadding = 2;
-      fontScale = 1;
+      fontScale = 1.10;
       enableExclusionZoneInset = true;
       backgroundOpacity = 0.95;
       useSeparateOpacity = true;
@@ -206,7 +206,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
         center = [
           {
             id = "Clock";
-            formatHorizontal = "HH:mm ddd, MMM dd";
+            formatHorizontal = "HH:mm ddd MMM dd";
             formatVertical = "HH mm - dd MM";
             tooltipFormat = "HH:mm ddd, MMM dd";
             clockColor = "none";
@@ -302,9 +302,18 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
     };
     templates = {
       activeTemplates = [
-        "gtk"
-        "qt"
-        "spicetify"
+        {
+          id = "gtk";
+          enabled = true;
+        }
+        {
+          id = "qt";
+          enabled = true;
+        }
+        {
+          id = "spicetify";
+          enabled = true;
+        }
       ];
     };
   };

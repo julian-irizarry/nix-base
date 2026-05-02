@@ -15,7 +15,21 @@
       local keys = require 'keymaps'
       local tabline_config = require 'plugins.tabline'
 
-      local tabline = tabline_config.setup()
+      local bell_tabs = {}
+
+      wezterm.on('bell', function(window, pane)
+        local tab = pane:tab()
+        if tab and window:active_tab():tab_id() ~= tab:tab_id() then
+          bell_tabs[tab:tab_id()] = true
+        end
+      end)
+
+      wezterm.on('update-status', function(window, pane)
+        local tab = window:active_tab()
+        if tab then bell_tabs[tab:tab_id()] = nil end
+      end)
+
+      local tabline = tabline_config.setup(bell_tabs)
 
       local config = {}
 
@@ -60,6 +74,15 @@
       config.hide_tab_bar_if_only_one_tab = true
 
       config.scrollback_lines = 10000
+
+      config.audible_bell = 'Disabled'
+      config.visual_bell = {
+        fade_in_function = 'EaseIn',
+        fade_in_duration_ms = 75,
+        fade_out_function = 'EaseOut',
+        fade_out_duration_ms = 150,
+        target = 'CursorColor',
+      }
 
       config.inactive_pane_hsb = { saturation = 0.7, brightness = 0.6 }
 

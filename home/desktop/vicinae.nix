@@ -20,24 +20,55 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     };
   };
 
-  xdg.configFile."vicinae/settings.json".source =
-    (pkgs.formats.json { }).generate "vicinae-settings.json"
-      {
-        "$schema" = "https://vicinae.com/schemas/config.json";
-        pop_to_root_on_close = true;
-        favorites = [
-          "sessionizer:sessionizer"
-          "sessionizer:find-open-session"
-        ];
-        theme = {
-          light = {
-            name = "vicinae dark";
-            icon_theme = "auto";
-          };
-          dark = {
-            name = "vicinae dark";
-            icon_theme = "auto";
-          };
-        };
+  services.vicinae.themes.kanagawa-deep = {
+    meta = {
+      version = 1;
+      name = "Kanagawa Deep";
+      description = "Deep blacks with Kanagawa wave-inspired accents";
+      variant = "dark";
+      inherits = "vicinae-dark";
+    };
+
+    colors = {
+      core = {
+        background = "#000000";
+        foreground = "#DCD7BA";
+        secondary_background = "#0A0A0A";
+        border = "#1A1A1A";
+        accent = "#7E9CD8";
       };
+      accents = {
+        blue = "#7E9CD8";
+        green = "#76946A";
+        magenta = "#957FB8";
+        orange = "#B4A1D4";
+        purple = "#938AA9";
+        red = "#C34043";
+        yellow = "#E6C384";
+        cyan = "#7FB4CA";
+      };
+      list.item.selection = {
+        background = "#141414";
+        secondary_background = "#1E1E1E";
+      };
+    };
+  };
+
+  services.vicinae.settings = {
+    pop_to_root_on_close = true;
+    favorites = [
+      "sessionizer:sessionizer"
+      "sessionizer:find-open-session"
+    ];
+    theme = {
+      light = {
+        name = "kanagawa-deep";
+        icon_theme = "auto";
+      };
+      dark = {
+        name = "kanagawa-deep";
+        icon_theme = "auto";
+      };
+    };
+  };
 }

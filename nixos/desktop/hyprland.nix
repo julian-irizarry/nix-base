@@ -34,6 +34,14 @@ lib.mkIf config.sys.desktop.hyprland.enable {
     # volume; pwvucontrol exposes per-app and per-device routing and talks
     # to pipewire natively (unlike pavucontrol which uses the pulse shim).
     pwvucontrol
+
+    # GTK3 theme that follows libadwaita/GTK4 colors — lets noctalia's
+    # color scheme propagate to GTK3 apps via gsettings.
+    adw-gtk3
+
+    # Qt6 theme engine — noctalia writes a qt6ct palette file so Qt apps
+    # follow the active color scheme.
+    kdePackages.qt6ct
   ];
 
   # Backing services for nautilus + gnome-disk-utility. gvfs powers trash,
@@ -43,6 +51,9 @@ lib.mkIf config.sys.desktop.hyprland.enable {
   services.tumbler.enable = true;
   services.udisks2.enable = true;
   programs.dconf.enable = true;
+
+  # Tell Qt apps to use qt6ct for theming so noctalia's palette reaches them.
+  environment.sessionVariables.QT_QPA_PLATFORMTHEME = "qt6ct";
 
   # Mirrors flake.nix nixConfig: the flake-level entry helps evaluators fetching
   # noctalia-shell at build time; this entry wires the deployed system's daemon

@@ -35,24 +35,6 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
   programs.noctalia-shell = {
     enable = true;
     package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    colors = {
-      mPrimary = "#F0B6D0";
-      mOnPrimary = "#0E0E10";
-      mSecondary = "#C3AED6";
-      mOnSecondary = "#0E0E10";
-      mTertiary = "#8BD5CA";
-      mOnTertiary = "#0E0E10";
-      mError = "#F38BA8";
-      mOnError = "#0E0E10";
-      mSurface = "#0E0E10";
-      mOnSurface = "#ECECF1";
-      mSurfaceVariant = "#18181B";
-      mOnSurfaceVariant = "#A1A1AA";
-      mOutline = "#2A2A30";
-      mShadow = "#000000";
-      mHover = "#222226";
-      mOnHover = "#ECECF1";
-    };
     plugins = {
       sources = [
         {
@@ -98,12 +80,12 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
 
     general.border_size = 0;
 
-    decoration.dim_inactive = true;
-    decoration.dim_strength = 0.25;
+    decoration.dim_inactive = false;
   };
 
   programs.noctalia-shell.settings = {
     settingsVersion = 59;
+    colorSchemes.predefinedScheme = "Eventide";
     general = {
       telemetryEnabled = false;
       enableShadows = true;
@@ -164,7 +146,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
           }
           {
             id = "Workspace";
-            labelMode = "index";
+            labelMode = "none";
             characterCount = 2;
             fontWeight = "bold";
             hideUnoccupied = false;
@@ -172,7 +154,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             showLabelsOnlyWhenOccupied = false;
             pillSize = 0.6;
             focusedColor = "error";
-            occupiedColor = "none";
+            occupiedColor = "onSurface";
             emptyColor = "none";
             unfocusedIconsOpacity = 1;
             colorizeIcons = false;
@@ -218,7 +200,7 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
             barBrightness = 100;
             colorMode = "primary";
             useFading = true;
-            hideWhenNoMedia = true;
+            hideWhenNoMedia = false;
           }
         ];
         center = [
@@ -318,5 +300,15 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
     appLauncher = {
       terminalCommand = "wezterm start --";
     };
+    templates = {
+      activeTemplates = [
+        "gtk"
+        "qt"
+        "spicetify"
+      ];
+    };
   };
+
+  xdg.configFile."noctalia/colorschemes/Pastel/Pastel.json".source = ./colorschemes/pastel.json;
+  xdg.configFile."noctalia/colorschemes/Eventide/Eventide.json".source = ./colorschemes/eventide.json;
 }

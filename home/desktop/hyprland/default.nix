@@ -62,6 +62,12 @@ in
 
         monitor = [ ",preferred,auto,1" ];
 
+        workspace = [
+          "1, persistent:true, default:true"
+          "2, persistent:true"
+          "3, persistent:true"
+        ];
+
         animations = {
           enabled = true;
           bezier = [ "ease, 0.25, 0.1, 0.25, 1.0" ];
@@ -120,7 +126,10 @@ in
     # Ensures Chrome and other apps that respect XDG color-scheme use dark mode.
     # Noctalia's syncGsettings will keep this in sync at runtime; this seeds
     # the value before noctalia has started on a fresh session.
-    dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
+    dconf.settings."org/gnome/desktop/interface" = {
+      color-scheme = "prefer-dark";
+      gtk-theme = "adw-gtk3";
+    };
 
     xdg.mime.enable = true;
 

@@ -109,6 +109,11 @@ map("v", "<leader>c", ":lua<CR>", { desc = "Execute selected lines" })
 
 map("n", "<C-q>", ":q<CR>", { desc = "Close neovim" })
 
+-- <C-g> prints bufname() as remembered (often a relative path). Force the
+-- full-path variant so file info is unambiguous regardless of how the buffer
+-- was opened.
+map("n", "<C-g>", "1<C-g>", { desc = "Show full file path + status" })
+
 -- Quit
 map("n", "<leader>q", "<cmd>qa<CR>", { desc = "Quit all" })
 map("n", "<leader>Q", "<cmd>qa!<CR>", { desc = "Quit all (force)" })

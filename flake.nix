@@ -41,6 +41,12 @@
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland";
     };
+    # Pinned pre-0.55: later revs require Hyprland >= 0.55 headers, and plugins
+    # are ABI-locked to the compositor. Bump together with hyprland.
+    hyprspace = {
+      url = "github:KZDKM/Hyprspace/12ddde04f8584bf7de3151e6169918e0dda9f822";
+      inputs.hyprland.follows = "hyprland";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";

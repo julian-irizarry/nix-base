@@ -57,10 +57,10 @@ in
     "SUPER, Return, exec, wezterm"
     "CTRL, Space, exec, vicinae toggle"
 
-    "SUPER, Escape, exec, noctalia-shell ipc call lockScreen lock"
+    "SUPER, Escape, exec, noctalia msg session lock"
 
-    "SUPER, Super_L, hyprexpo:expo, toggle"
+    "SUPER, Super_L, overview:toggle"
 
-    "SUPER, Space, exec, noctalia-shell ipc call launcher toggle"
+    "SUPER, Space, exec, noctalia msg panel-toggle launcher"
   ];
 }

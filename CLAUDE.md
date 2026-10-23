@@ -196,9 +196,33 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   `lib/mkSystem.nix`, and `nixos/tests/default.nix` all pass the `noctalia`
   flake input into home-manager's `extraSpecialArgs`. `home/desktop/hyprland/
 noctalia.nix` receives it as a module arg and wires
-  `programs.noctalia-shell.package = noctalia.packages.${system}.default`.
+  `programs.noctalia.package = noctalia.packages.${system}.default`.
   If you add new mkHome/mkSystem paths, remember to thread noctalia the same
   way or the module will eval-error.
+- **Noctalia is v5: TOML config, not JSON settings.** `programs.noctalia.settings`
+  is rendered to `~/.config/noctalia/config.toml` and validated at build time by
+  `noctalia config validate` (so a bad key fails the build, not the session).
+  Use real nested attrsets (`bar.main = { ... }`), never quoted dotted keys
+  (`"bar.main" = { ... }`) — the latter emit a literal dotted TOML key and
+  noctalia reports "unknown section" as a _warning_, so the config silently
+  falls back to defaults. Other v5 shape changes: the binary is `noctalia`
+  (was `noctalia-shell`); IPC is `noctalia msg <cmd>` (was
+  `noctalia-shell ipc call`); bar widgets are flat id lists with options in
+  separate `[widget.<id>]` tables; the v4 `"none"` color sentinel is gone —
+  omit the key instead; colorschemes moved from
+  `noctalia/colorschemes/<N>/<N>.json` to `programs.noctalia.customPalettes`
+  (rendered to `noctalia/palettes/<N>.json`) selected via
+  `theme.source = "custom"` + `theme.custom_palette`.
+- **Idle is noctalia's job now, not hypridle.** `[idle.behavior.lock]` and
+  `[idle.behavior.screen-off]` in the noctalia config replace the
+  `services.hypridle` block; `my.desktop.hyprland.idle.*` feeds them.
+- **Workspace overview is Hyprspace, pinned pre-0.55.** hyprexpo was deleted
+  from hyprland-plugins upstream (`3aa21f2`, "drop unmaintained plugins") and
+  is not in nixpkgs. `inputs.hyprspace` is pinned at `12ddde0` — the last rev
+  before the Hyprland 0.55 port — because plugins are ABI-locked to the
+  compositor and ours is v0.54.2. Bump both together, or the plugin fails to
+  compile against missing headers. Dispatcher is `overview:toggle`; options
+  live under `plugin:overview:*`.
 - **Hyprland on NVIDIA needs extra env vars.** If `sys.nvidia.enable = true`
   is combined with `sys.desktop.hyprland.enable = true`, the consumer should
   set `WLR_NO_HARDWARE_CURSORS=1` (and friends) via their extended flake —

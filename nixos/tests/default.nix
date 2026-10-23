@@ -160,8 +160,8 @@ pkgs.testers.runNixOSTest {
     with subtest("cosmic session file is NOT installed (cosmic disabled)"):
         machine.fail("test -e /run/current-system/sw/share/wayland-sessions/cosmic.desktop")
 
-    with subtest("noctalia-shell is available to the user"):
-        machine.succeed("su - testuser -c 'which noctalia-shell'")
+    with subtest("noctalia is available to the user"):
+        machine.succeed("su - testuser -c 'which noctalia'")
 
     with subtest("hypr-cycle-layout helper is on user PATH"):
         machine.succeed("su - testuser -c 'which hypr-cycle-layout'")

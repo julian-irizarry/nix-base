@@ -167,7 +167,7 @@
           default = [ ];
           description = ''
             Hyprland plugin packages to enable. Packages come from
-            pkgs.hyprlandPlugins (e.g. hyprexpo, hy3, hyprbars).
+            pkgs.hyprlandPlugins (e.g. hy3, hyprbars).
           '';
         };
 

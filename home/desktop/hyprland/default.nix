@@ -11,7 +11,7 @@ let
   cfg = config.my.desktop.hyprland;
   kb = import ./keybinds.nix { inherit pkgs; };
   allPlugins = [
-    inputs.hyprland-plugins.packages.${system}.hyprexpo
+    inputs.hyprspace.packages.${system}.Hyprspace
   ]
   ++ cfg.plugins;
   # HM's plugins option uses exec-once which races with UWSM. Write
@@ -36,17 +36,19 @@ in
           "3, horizontal, workspace"
         ];
 
-        "plugin:hyprexpo" = {
-          columns = 3;
-          gap_size = 5;
-          bg_col = "rgb(111111)";
-          workspace_method = "first 1";
-          enable_gesture = false;
+        "plugin:overview" = {
+          panelHeight = 250;
+          panelBorderWidth = 0;
+          workspaceMargin = 5;
+          centerAligned = true;
+          affectStrut = false;
+          disableBlur = true;
+          panelColor = "rgb(111111)";
         };
 
         bind = kb.binds;
         bindl = [
-          ", switch:Lid Switch, exec, noctalia-shell ipc call lockScreen lock"
+          ", switch:Lid Switch, exec, noctalia msg session lock"
         ];
 
         general = {

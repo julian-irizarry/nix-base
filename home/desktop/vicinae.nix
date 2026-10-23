@@ -10,7 +10,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
   # vicinae flake input (see lib/mkHome.nix). We pin package to pkgs.vicinae
   # so builds skip the upstream cachix and cache through nixpkgs instead;
   # nixGL.wrap makes Qt's RHI find system GL drivers on non-NixOS.
-  services.vicinae = {
+  programs.vicinae = {
     enable = true;
     package =
       if config.my.platform.nixGL.enable then config.lib.nixGL.wrap pkgs.vicinae else pkgs.vicinae;
@@ -20,7 +20,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     };
   };
 
-  services.vicinae.themes.kanagawa-deep = {
+  programs.vicinae.themes.kanagawa-deep = {
     meta = {
       version = 1;
       name = "Kanagawa Deep";
@@ -54,7 +54,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     };
   };
 
-  services.vicinae.settings = {
+  programs.vicinae.settings = {
     pop_to_root_on_close = true;
     favorites = [
       "sessionizer:sessionizer"

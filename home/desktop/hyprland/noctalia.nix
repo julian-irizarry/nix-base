@@ -10,55 +10,201 @@ let
   cfg = config.my.desktop.hyprland;
 in
 lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLinux) {
-  services.hypridle = lib.mkIf cfg.idle.enable {
-    enable = true;
-    settings = {
-      general = {
-        lock_cmd = "pidof noctalia-shell && noctalia-shell ipc call lockScreen lock";
-        before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = "hyprctl dispatch dpms on";
-      };
-      listener = [
-        {
-          timeout = cfg.idle.lockTimeout;
-          on-timeout = "loginctl lock-session";
-        }
-        {
-          timeout = cfg.idle.displayOffTimeout;
-          on-timeout = "hyprctl dispatch dpms off";
-          on-resume = "hyprctl dispatch dpms on";
-        }
-      ];
-    };
-  };
-
-  programs.noctalia-shell = {
+  programs.noctalia = {
     enable = true;
     package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    plugins = {
-      sources = [
-        {
-          enabled = true;
-          name = "Official Noctalia Plugins";
-          url = "https://github.com/noctalia-dev/noctalia-plugins";
-        }
-      ];
-      states = {
-        screen-recorder = {
-          enabled = true;
-          sourceUrl = "https://github.com/noctalia-dev/noctalia-plugins";
-        };
-        fancy-audiovisualizer = {
-          enabled = true;
-          sourceUrl = "https://github.com/noctalia-dev/noctalia-plugins";
+
+    # Palette JSONs land in ~/.config/noctalia/palettes/<name>.json and are
+    # selected by [theme] source = "custom" + custom_palette below.
+    customPalettes = {
+      Eventide = lib.importJSON ./colorschemes/eventide.json;
+      Pastel = lib.importJSON ./colorschemes/pastel.json;
+    };
+
+    # v5 config is TOML at ~/.config/noctalia/config.toml. Validated at build
+    # time by `noctalia config validate` (programs.noctalia.validateConfig).
+    settings = {
+      shell = {
+        font_family = "Fira Sans";
+        telemetry_enabled = false;
+        settings_show_advanced = true;
+        polkit_agent = true;
+
+        shadow.alpha = 0.55;
+
+        animation.enabled = true;
+
+        panel = {
+          transparency_mode = "solid";
+          borders = false;
+          shadow = true;
+          control_center_placement = "attached";
+          wallpaper_placement = "attached";
+          session_placement = "attached";
+          launcher_placement = "floating";
+          launcher_position = "center";
+          clipboard_placement = "floating";
+          clipboard_position = "center";
         };
       };
-      version = 2;
+
+      theme = {
+        mode = "dark";
+        source = "custom";
+        custom_palette = "Eventide";
+
+        templates = {
+          enable_builtin_templates = true;
+          # v5 renamed the gtk template to gtk3/gtk4 and dropped spicetify from
+          # the builtin catalog; wezterm/kitty are new and match our terminals.
+          builtin_ids = [
+            "gtk3"
+            "gtk4"
+            "qt"
+            "wezterm"
+            "kitty"
+          ];
+        };
+      };
+
+      lockscreen = {
+        enabled = true;
+        blur_intensity = 0.70;
+      };
+
+      wallpaper = {
+        enabled = true;
+        directory = "${config.home.homeDirectory}/Pictures/wallpapers";
+        fill_mode = "crop";
+
+        automation = {
+          enabled = true;
+          order = "random";
+          recursive = true;
+        };
+      };
+
+      notification = {
+        enable_daemon = true;
+        position = "top_right";
+        background_opacity = 0.97;
+      };
+
+      dock.enabled = true;
+
+      system.monitor.enabled = true;
+
+      # hypridle is gone in favor of noctalia's built-in [idle] behaviors —
+      # one less daemon, and lock/screen-off share noctalia's lockscreen state.
+      idle.behavior = {
+        lock = {
+          enabled = cfg.idle.enable;
+          timeout = cfg.idle.lockTimeout;
+          action = "lock";
+        };
+
+        screen-off = {
+          enabled = cfg.idle.enable;
+          timeout = cfg.idle.displayOffTimeout;
+          action = "screen_off";
+        };
+      };
+
+      # v5 bars are named tables; widgets are flat id lists and per-widget
+      # options live in separate [widget.<id>] tables below.
+      bar.main = {
+        position = "top";
+        thickness = 34;
+        background_opacity = 0.95;
+        radius = 12;
+        margin_ends = 385;
+        margin_edge = 2;
+        padding = 14;
+        widget_spacing = 6;
+        shadow = true;
+        reserve_space = true;
+        capsule = false;
+        start = [
+          "launcher"
+          "workspaces"
+          "sysmon_cpu"
+          "sysmon_ram"
+          "spacer"
+          "audio_visualizer"
+        ];
+        center = [ "clock" ];
+        end = [
+          "spacer"
+          "volume"
+          "brightness"
+          "battery"
+          "notifications"
+          "settings"
+          "control-center"
+          "session"
+        ];
+
+        dead_zone.actions.right = "panel-toggle control-center home";
+      };
+
+      widget = {
+        workspaces = {
+          style = "regular";
+          show_labels = false;
+          hide_when_empty = false;
+          active_pill_size = 0.6;
+          inactive_pill_size = 0.6;
+          focused_color = "error";
+          occupied_color = "on_surface";
+          focused_output_only = false;
+        };
+
+        # v5 splits the monolithic SystemMonitor widget into one instance per
+        # stat, so CPU and RAM are two bar entries rather than one widget's flags.
+        sysmon_cpu = {
+          type = "sysmon";
+          stat = "cpu_usage";
+          show_glyph = true;
+          show_value = true;
+        };
+
+        sysmon_ram = {
+          type = "sysmon";
+          stat = "ram_used";
+          show_glyph = true;
+          show_value = true;
+        };
+
+        audio_visualizer = {
+          width = 100;
+          bands = 24;
+          mirrored = false;
+          centered = true;
+          show_when_idle = true;
+          color_1 = "primary";
+        };
+
+        clock = {
+          format = "{:%H:%M %a %b %d}";
+          vertical_format = "{:%H\n%M}";
+          tooltip_format = "{:%A, %B %d, %Y}";
+        };
+
+        volume.show_label = false;
+
+        battery = {
+          display_mode = "graphic";
+          hide_when_full = false;
+          show_label = false;
+        };
+
+        notifications.hide_when_no_unread = false;
+      };
     };
   };
 
   wayland.windowManager.hyprland.settings = {
-    exec-once = lib.mkAfter [ "noctalia-shell" ];
+    exec-once = lib.mkAfter [ "noctalia" ];
 
     input = {
       touchpad = {
@@ -82,242 +228,4 @@ lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLi
 
     decoration.dim_inactive = false;
   };
-
-  programs.noctalia-shell.settings = {
-    settingsVersion = 59;
-    colorSchemes.predefinedScheme = "Eventide";
-    general = {
-      telemetryEnabled = false;
-      enableShadows = true;
-      enableBlurBehind = true;
-      reverseScroll = false;
-      compactLockScreen = true;
-      lockScreenBlur = 0.70;
-      passwordChars = true;
-      lockScreenAnimations = true;
-      enableLockScreenCountdown = false;
-    };
-    ui = {
-      fontDefault = "Fira Sans";
-      fontFixed = "Fira Mono";
-      fontDefaultScale = 1;
-      fontFixedScale = 1;
-      tooltipsEnabled = true;
-      scrollbarAlwaysVisible = true;
-      boxBorderEnabled = false;
-      panelBackgroundOpacity = 0.93;
-      translucentWidgets = false;
-      panelsAttachedToBar = true;
-      settingsPanelMode = "centered";
-      settingsPanelSideBarCardStyle = false;
-    };
-    bar = {
-      barType = "floating";
-      position = "top";
-      density = "default";
-      showCapsule = false;
-      capsuleOpacity = 1;
-      capsuleColorKey = "none";
-      widgetSpacing = 6;
-      contentPadding = 2;
-      fontScale = 1.10;
-      enableExclusionZoneInset = true;
-      backgroundOpacity = 0.95;
-      useSeparateOpacity = true;
-      marginVertical = 2;
-      marginHorizontal = 385;
-      frameThickness = 8;
-      frameRadius = 12;
-      outerCorners = false;
-      displayMode = "always_visible";
-      rightClickAction = "controlCenter";
-      rightClickFollowMouse = true;
-      widgets = {
-        left = [
-          {
-            id = "Launcher";
-            icon = "rocket";
-            useDistroLogo = true;
-            enableColorization = false;
-            colorizeSystemIcon = "none";
-            colorizeSystemText = "none";
-            customIconPath = "";
-            iconColor = "none";
-          }
-          {
-            id = "Workspace";
-            labelMode = "none";
-            characterCount = 2;
-            fontWeight = "bold";
-            hideUnoccupied = false;
-            showBadge = true;
-            showLabelsOnlyWhenOccupied = false;
-            pillSize = 0.6;
-            focusedColor = "error";
-            occupiedColor = "onSurface";
-            emptyColor = "none";
-            unfocusedIconsOpacity = 1;
-            colorizeIcons = false;
-            iconScale = 0.8;
-            showApplications = false;
-            showApplicationsHover = false;
-            enableScrollWheel = true;
-            followFocusedScreen = false;
-            groupedBorderOpacity = 1;
-          }
-          {
-            id = "SystemMonitor";
-            compactMode = true;
-            diskPath = "/";
-            showCpuUsage = true;
-            showCpuTemp = true;
-            showCpuFreq = false;
-            showCpuCores = false;
-            showMemoryUsage = true;
-            showMemoryAsPercent = false;
-            showSwapUsage = false;
-            showGpuTemp = false;
-            showDiskUsage = false;
-            showDiskAvailable = false;
-            showDiskUsageAsPercent = false;
-            showLoadAverage = false;
-            showNetworkStats = false;
-            useMonospaceFont = true;
-            usePadding = false;
-            textColor = "none";
-            iconColor = "none";
-          }
-          {
-            id = "Spacer";
-          }
-          {
-            id = "AudioVisualizer";
-            visualizerType = "bars";
-            width = 100;
-            barWidth = 3;
-            barSpacing = 2;
-            barHeight = 20;
-            barBrightness = 100;
-            colorMode = "primary";
-            useFading = true;
-            hideWhenNoMedia = false;
-          }
-        ];
-        center = [
-          {
-            id = "Clock";
-            formatHorizontal = "HH:mm ddd MMM dd";
-            formatVertical = "HH mm - dd MM";
-            tooltipFormat = "HH:mm ddd, MMM dd";
-            clockColor = "none";
-            useCustomFont = false;
-            customFont = "";
-          }
-        ];
-        right = [
-          {
-            id = "Spacer";
-          }
-          {
-            id = "Volume";
-            displayMode = "onhover";
-            middleClickCommand = "pwvucontrol || pavucontrol";
-            textColor = "none";
-            iconColor = "none";
-          }
-          {
-            id = "Brightness";
-            iconColor = "primary";
-          }
-          {
-            id = "Battery";
-            displayMode = "graphic-clean";
-            hideIfNotDetected = true;
-            hideIfIdle = false;
-            showPowerProfiles = false;
-            showNoctaliaPerformance = false;
-            deviceNativePath = "__default__";
-          }
-          {
-            id = "plugin:screen-recorder";
-            iconColor = "tertiary";
-          }
-          {
-            id = "NotificationHistory";
-            showUnreadBadge = true;
-            hideWhenZero = false;
-            hideWhenZeroUnread = false;
-            unreadBadgeColor = "primary";
-            iconColor = "none";
-          }
-          {
-            id = "Settings";
-            iconColor = "none";
-          }
-          {
-            id = "ControlCenter";
-            icon = "noctalia";
-            useDistroLogo = false;
-            enableColorization = false;
-            colorizeSystemIcon = "none";
-            colorizeSystemText = "none";
-            colorizeDistroLogo = false;
-            customIconPath = "";
-          }
-          {
-            id = "SessionMenu";
-            iconColor = "error";
-          }
-        ];
-      };
-    };
-    sessionMenu = {
-      largeButtonsStyle = false;
-      position = "top_right";
-      showHeader = true;
-      showKeybinds = true;
-      enableCountdown = false;
-    };
-    wallpaper = {
-      enabled = true;
-      directory = "${config.home.homeDirectory}/Pictures/wallpapers";
-      viewMode = "recursive";
-      wallpaperChangeMode = "random";
-      fillMode = "crop";
-      showHiddenFiles = true;
-      sortOrder = "date_desc";
-    };
-    dock = {
-      enabled = true;
-    };
-    notifications = {
-      enabled = true;
-      location = "top_right";
-      lowUrgencyDuration = 3;
-      normalUrgencyDuration = 8;
-      criticalUrgencyDuration = 15;
-    };
-    appLauncher = {
-      terminalCommand = "wezterm start --";
-    };
-    templates = {
-      activeTemplates = [
-        {
-          id = "gtk";
-          enabled = true;
-        }
-        {
-          id = "qt";
-          enabled = true;
-        }
-        {
-          id = "spicetify";
-          enabled = true;
-        }
-      ];
-    };
-  };
-
-  xdg.configFile."noctalia/colorschemes/Pastel/Pastel.json".source = ./colorschemes/pastel.json;
-  xdg.configFile."noctalia/colorschemes/Eventide/Eventide.json".source = ./colorschemes/eventide.json;
 }

@@ -26,7 +26,6 @@
         "editor.fontFamily" = config.my.font.name;
         "editor.fontSize" = config.my.font.size;
         "editor.formatOnSave" = true;
-        "editor.renderWhitespace" = "boundary";
         "editor.rulers" = [ 100 ];
         "editor.bracketPairColorization.enabled" = true;
         "editor.minimap.enabled" = false;
@@ -42,6 +41,17 @@
 
         "workbench.editor.enablePreview" = false;
         "workbench.startupEditor" = "none";
+        "workbench.colorTheme" = "GitHub Dark Default";
+        # Whole-block insertions stack the line and text tints, so keep both faint.
+        "workbench.colorCustomizations" = {
+          "diffEditor.insertedLineBackground" = "#2ea0431a";
+          "diffEditor.insertedTextBackground" = "#2ea0430d";
+          "diffEditor.removedLineBackground" = "#f851491a";
+          "diffEditor.removedTextBackground" = "#f851490d";
+          "diffEditorGutter.insertedLineBackground" = "#2ea04333";
+          "diffEditorGutter.removedLineBackground" = "#f8514933";
+          "diffEditor.diagonalFill" = "#00000000";
+        };
 
         "git.confirmSync" = false;
         "git.autofetch" = true;

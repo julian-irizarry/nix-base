@@ -1,7 +1,21 @@
-{ lib, ... }:
+{ lib, pkgs, ... }:
 
 {
   options.my = {
+    nh.homeConfiguration = lib.mkOption {
+      type = lib.types.str;
+      default = pkgs.stdenv.hostPlatform.system;
+      defaultText = lib.literalExpression "pkgs.stdenv.hostPlatform.system";
+      example = "jirizarry-mac";
+      description = ''
+        homeConfigurations attribute the zsh `hms` helper passes to
+        `nh home switch -c`. The default matches mkHome's per-system keys;
+        set it when the consumer names its configuration differently.
+        Ignored when home-manager runs inside NixOS, where `hms` uses
+        `nh os switch`.
+      '';
+    };
+
     git = {
       userName = lib.mkOption {
         type = lib.types.str;
@@ -70,8 +84,9 @@
       type = lib.types.attrsOf lib.types.attrs;
       default = { };
       description = ''
-        Additional ssh matchBlocks keyed by host name. Merged into
-        programs.ssh.matchBlocks.
+        Additional ssh hosts keyed by host name, using programs.ssh
+        matchBlock attribute names. Rendered to ~/.ssh/config.d/hm-hosts,
+        not merged into programs.ssh (home-manager doesn't own ~/.ssh/config).
       '';
     };
 
@@ -175,7 +190,7 @@
           enable = lib.mkOption {
             type = lib.types.bool;
             default = true;
-            description = "Enable hypridle for automatic screen locking and display power management.";
+            description = "Enable noctalia's idle behaviors for automatic screen locking and display power management.";
           };
 
           lockTimeout = lib.mkOption {

@@ -2,10 +2,19 @@
   config,
   lib,
   pkgs,
+  osConfig ? null,
   ...
 }:
 
 let
+  # NixOS-integrated home-manager has no standalone generation to switch;
+  # the system switch rebuilds it.
+  switchCommand =
+    if osConfig != null then
+      "nh os switch \${NH_FLAKE:-.}"
+    else
+      "nh home switch \${NH_FLAKE:-.} -c ${config.my.nh.homeConfiguration}";
+
   zshCustomPrefix = "oh-my-zsh";
   # Stage a third-party plugin's source into $ZSH_CUSTOM/plugins/<plugin>/ so
   # oh-my-zsh's loader can find it by plain name. OMZ expects each plugin dir
@@ -49,6 +58,7 @@ in
 
     oh-my-zsh = {
       enable = true;
+      custom = "${config.xdg.dataHome}/${zshCustomPrefix}";
       theme = "robbyrussell";
       plugins = [
         "git"
@@ -81,7 +91,6 @@ in
     };
 
     shellAliases = {
-      vim = "nvim";
       nd = "nix develop -vvv";
       ls = "eza -a --icons=always";
       ll = "eza -lhag --icons=always";
@@ -91,12 +100,7 @@ in
       ip = "ip -color=auto";
     };
 
-    sessionVariables = {
-      EDITOR = "nvim";
-      ZSH = "$HOME/.oh-my-zsh";
-      ZSH_CUSTOM = "${config.xdg.dataHome}/${zshCustomPrefix}";
-      GTEST_COLOR = "1";
-    };
+    sessionVariables.GTEST_COLOR = "1";
 
     initContent = lib.mkMerge [
       (lib.mkBefore ''
@@ -120,7 +124,9 @@ in
 
         ag() { print -z "$(fc -ln -2 -2)"; }
 
-        hms() { print -z "home-manager switch --flake .#x86_64-linux"; }
+        # Prefills the command so extra flags (e.g. `-- --override-input ...`)
+        # can be appended. Uses NH_FLAKE, or the current directory if unset.
+        hms() { print -z "${switchCommand}"; }
 
         [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"
       ''

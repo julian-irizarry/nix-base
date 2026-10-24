@@ -49,6 +49,12 @@
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Prebuilt weekly nix-index database: command-not-found suggestions and
+    # comma (`, <cmd>`) without a local nix-index run.
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -62,6 +68,7 @@
       determinate,
       disko,
       noctalia,
+      nix-index-database,
       ...
     }:
     let
@@ -77,6 +84,7 @@
             ./home
             vicinae.homeManagerModules.default
             noctalia.homeModules.default
+            nix-index-database.homeModules.default
           ];
           _module.args.nixBaseInputs = inputs;
           targets.genericLinux.nixGL.packages = lib.mkIf pkgs.stdenv.hostPlatform.isLinux nixGL.packages;

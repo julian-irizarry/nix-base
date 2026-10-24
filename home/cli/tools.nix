@@ -49,7 +49,19 @@
   programs.lazygit.enable = true;
   programs.less.enable = true;
   programs.man.enable = true;
-  programs.nh.enable = true;
+  # Consumers set programs.nh.flake (NH_FLAKE) to their flake checkout so
+  # `nh home switch` / `nh os switch` work from any directory.
+  programs.nh = {
+    enable = true;
+    clean = {
+      enable = true;
+      extraArgs = "--keep-since 7d --keep 5";
+    };
+  };
+  # Database comes prebuilt from nix-index-database; enables command-not-found
+  # suggestions in zsh and `, <cmd>` to run a package without installing it.
+  programs.nix-index.enable = true;
+  programs.nix-index-database.comma.enable = true;
   programs.nix-your-shell.enable = true;
   programs.readline.enable = true;
   programs.tealdeer.enable = true;

@@ -20,7 +20,12 @@
         llvm-vs-code-extensions.vscode-clangd
         rust-lang.rust-analyzer
         eamodio.gitlens
+        github.github-vscode-theme
       ];
+
+      # Merged into a writable settings.json on each switch (these values win),
+      # so changes made from VS Code's UI persist instead of failing to save.
+      mutableUserSettings = true;
 
       userSettings = {
         "editor.fontFamily" = config.my.font.name;

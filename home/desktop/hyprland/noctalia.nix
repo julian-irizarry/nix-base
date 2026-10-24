@@ -2,7 +2,7 @@
   config,
   lib,
   pkgs,
-  inputs,
+  nixBaseInputs,
   ...
 }:
 
@@ -12,7 +12,7 @@ in
 lib.mkIf (cfg.enable && cfg.shell == "noctalia" && pkgs.stdenv.hostPlatform.isLinux) {
   programs.noctalia = {
     enable = true;
-    package = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    package = nixBaseInputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
     # Palette JSONs land in ~/.config/noctalia/palettes/<name>.json and are
     # selected by [theme] source = "custom" + custom_palette below.

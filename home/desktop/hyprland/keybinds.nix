@@ -49,7 +49,7 @@ in
     "SUPER, F, fullscreen, 1"
     "SUPER, G, togglefloating"
 
-    "SUPER, O, togglesplit"
+    "SUPER, O, layoutmsg, togglesplit"
     "SUPER SHIFT, O, exec, ${cycleLayout}/bin/hypr-cycle-layout"
 
     ", Print, exec, hyprshot -m region --freeze"

@@ -3,7 +3,8 @@
   home-manager,
   inputs,
   nixosInputs,
-  homeModulesDefault,
+  nixosModule,
+  homeModule,
 }:
 
 {
@@ -19,11 +20,8 @@ nixpkgs.lib.nixosSystem {
     inputs = nixosInputs // extraInputs;
   };
   modules = [
-    ../nixos
-    {
-      nixpkgs.config.allowUnfree = true;
-      nixpkgs.config.allowUnfreePredicate = _: true;
-    }
+    nixosModule
+    { nixpkgs.config.allowUnfree = true; }
   ]
   ++ modules
   ++ nixpkgs.lib.optionals (homeModules != null) [
@@ -35,7 +33,7 @@ nixpkgs.lib.nixosSystem {
         home-manager.useUserPackages = true;
         home-manager.extraSpecialArgs = { inherit inputs; };
         home-manager.users.${config.sys.username} = {
-          imports = homeModulesDefault ++ homeModules;
+          imports = [ homeModule ] ++ homeModules;
           my.platform.nixGL.enable = false;
         };
       }

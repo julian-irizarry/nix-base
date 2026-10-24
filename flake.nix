@@ -36,16 +36,14 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    hyprland.url = "github:hyprwm/Hyprland/v0.54.2";
-    hyprland-plugins = {
-      url = "github:hyprwm/hyprland-plugins";
-      inputs.hyprland.follows = "hyprland";
-    };
-    # Pinned pre-0.55: later revs require Hyprland >= 0.55 headers, and plugins
-    # are ABI-locked to the compositor. Bump together with hyprland.
+    # Source only: built against nixpkgs' hyprland via
+    # pkgs.hyprlandPlugins.hyprspace.overrideAttrs. Pinned to the commit
+    # Hyprspace's hyprpm.toml lists for Hyprland 0.56; master tracks
+    # Hyprland git and breaks against releases. Re-pin when nixpkgs moves
+    # hyprland to a new minor.
     hyprspace = {
-      url = "github:KZDKM/Hyprspace/12ddde04f8584bf7de3151e6169918e0dda9f822";
-      inputs.hyprland.follows = "hyprland";
+      url = "github:KZDKM/Hyprspace/96a3b958a05a8942d26a5ec510f60217d63a7dce";
+      flake = false;
     };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
@@ -63,20 +61,40 @@
       nixGL,
       determinate,
       disko,
-      hyprland,
       noctalia,
       ...
     }:
     let
-      sharedInputs = { inherit determinate disko hyprland; };
+      sharedInputs = { inherit determinate disko; };
+
+      # Self-contained: carries the third-party modules and inputs nix-base's
+      # own modules need, so consumers can import homeModules.default /
+      # nixosModules.default without going through mkHome / mkSystem.
+      homeModule =
+        { lib, pkgs, ... }:
+        {
+          imports = [
+            ./home
+            vicinae.homeManagerModules.default
+            noctalia.homeModules.default
+          ];
+          _module.args.nixBaseInputs = inputs;
+          targets.genericLinux.nixGL.packages = lib.mkIf pkgs.stdenv.hostPlatform.isLinux nixGL.packages;
+        };
+      nixosModule = {
+        imports = [
+          ./nixos
+          determinate.nixosModules.default
+          disko.nixosModules.disko
+        ];
+      };
 
       mkHome = import ./lib/mkHome.nix {
         inherit
           nixpkgs
           home-manager
-          vicinae
-          nixGL
           inputs
+          homeModule
           ;
       };
       mkSystem = import ./lib/mkSystem.nix {
@@ -84,14 +102,10 @@
           nixpkgs
           home-manager
           inputs
+          nixosModule
+          homeModule
           ;
         nixosInputs = sharedInputs;
-        homeModulesDefault = [
-          ./home
-          vicinae.homeManagerModules.default
-          noctalia.homeModules.default
-          { targets.genericLinux.nixGL.packages = nixGL.packages; }
-        ];
       };
 
       supportedSystems = [
@@ -204,20 +218,14 @@
         inherit
           nixpkgs
           home-manager
-          inputs
+          nixosModule
+          homeModule
           ;
-        nixosInputs = sharedInputs;
-        homeModulesDefault = [
-          ./home
-          vicinae.homeManagerModules.default
-          noctalia.homeModules.default
-          { targets.genericLinux.nixGL.packages = nixGL.packages; }
-        ];
       };
     in
     {
-      homeModules.default = ./home;
-      nixosModules.default = ./nixos;
+      homeModules.default = homeModule;
+      nixosModules.default = nixosModule;
 
       lib = { inherit mkHome mkSystem; };
 

@@ -2,18 +2,18 @@
   config,
   lib,
   pkgs,
-  inputs,
+  nixBaseInputs,
   ...
 }:
 
 let
-  system = pkgs.stdenv.hostPlatform.system;
   cfg = config.my.desktop.hyprland;
   kb = import ./keybinds.nix { inherit pkgs; };
-  allPlugins = [
-    inputs.hyprspace.packages.${system}.Hyprspace
-  ]
-  ++ cfg.plugins;
+  hyprspace = pkgs.hyprlandPlugins.hyprspace.overrideAttrs {
+    version = "0-unstable-${builtins.substring 0 7 nixBaseInputs.hyprspace.rev}";
+    src = nixBaseInputs.hyprspace;
+  };
+  allPlugins = [ hyprspace ] ++ cfg.plugins;
   # HM's plugins option uses exec-once which races with UWSM. Write
   # plugin directives to a separate file and source it — sourceFirst
   # ensures source lines land before keybinds in the generated config.
@@ -27,7 +27,7 @@ in
   config = lib.mkIf (cfg.enable && pkgs.stdenv.hostPlatform.isLinux) {
     wayland.windowManager.hyprland = {
       enable = true;
-      package = inputs.hyprland.packages.${system}.hyprland;
+      configType = "hyprlang";
 
       settings = {
         source = [ "${pluginConf}" ];

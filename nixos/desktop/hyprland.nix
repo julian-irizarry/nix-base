@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 
@@ -10,9 +9,6 @@ lib.mkIf config.sys.desktop.hyprland.enable {
   programs.hyprland = {
     enable = true;
     withUWSM = true;
-    package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-    portalPackage =
-      inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
   };
 
   xdg.portal.enable = true;
@@ -38,10 +34,6 @@ lib.mkIf config.sys.desktop.hyprland.enable {
     # GTK3 theme that follows libadwaita/GTK4 colors — lets noctalia's
     # color scheme propagate to GTK3 apps via gsettings.
     adw-gtk3
-
-    # Qt6 theme engine — noctalia writes a qt6ct palette file so Qt apps
-    # follow the active color scheme.
-    kdePackages.qt6ct
   ];
 
   # Backing services for nautilus + gnome-disk-utility. gvfs powers trash,
@@ -52,8 +44,14 @@ lib.mkIf config.sys.desktop.hyprland.enable {
   services.udisks2.enable = true;
   programs.dconf.enable = true;
 
-  # Tell Qt apps to use qt6ct for theming so noctalia's palette reaches them.
-  environment.sessionVariables.QT_QPA_PLATFORMTHEME = "qt6ct";
+  # noctalia writes a qt6ct palette. The "qt5ct" platform theme installs both
+  # qt5ct and qt6ct, and qt6ct's plugin also answers to the qt5ct key, so Qt6
+  # apps still pick the palette up. Matches COSMIC's default, so enabling
+  # both desktops doesn't conflict on QT_QPA_PLATFORMTHEME.
+  qt = {
+    enable = true;
+    platformTheme = "qt5ct";
+  };
 
   # Mirrors flake.nix nixConfig: the flake-level entry helps evaluators fetching
   # noctalia-shell at build time; this entry wires the deployed system's daemon

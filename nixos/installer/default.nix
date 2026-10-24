@@ -1,5 +1,4 @@
 {
-  inputs,
   config,
   pkgs,
   lib,
@@ -54,8 +53,6 @@ let
   };
 in
 {
-  imports = [ inputs.disko.nixosModules.disko ];
-
   image.modules.iso-installer = {
     environment.systemPackages = [
       installScript

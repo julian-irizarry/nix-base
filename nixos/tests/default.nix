@@ -10,9 +10,8 @@
 {
   nixpkgs,
   home-manager,
-  homeModulesDefault,
-  inputs,
-  nixosInputs,
+  nixosModule,
+  homeModule,
 }:
 
 let
@@ -21,48 +20,15 @@ let
     system = "x86_64-linux";
     config.allowUnfree = true;
   };
-
-  # Base module set shared by all test VMs. Imports the full nixos/
-  # module tree; compositor modules are gated via sys.desktop.*.
-  baseTestModule =
-    { lib, ... }:
-    {
-      imports = [
-        ../options.nix
-        ../boot
-        ../desktop
-        ../hardware/nvidia.nix
-        ../hardware/firmware.nix
-        ../hardware/thunderbolt.nix
-        ../networking
-        ../nix
-        ../programs
-        ../security
-        ../services/audio.nix
-        ../services/bluetooth.nix
-        ../services/docker.nix
-        ../services/printing.nix
-        ../services/swap.nix
-        ../users
-        ../virtualisation
-      ];
-
-      time.timeZone = "America/New_York";
-      i18n.defaultLocale = "en_US.UTF-8";
-      system.stateVersion = lib.mkDefault "25.05";
-    };
 in
 pkgs.testers.runNixOSTest {
   name = "nix-base-integration";
-  node.specialArgs = {
-    inputs = nixosInputs;
-  };
 
   nodes.machine =
     { ... }:
     {
       imports = [
-        baseTestModule
+        nixosModule
         home-manager.nixosModules.home-manager
       ];
 
@@ -76,9 +42,8 @@ pkgs.testers.runNixOSTest {
       # Integrate home-manager for user config testing
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = { inherit inputs; };
       home-manager.users.testuser = {
-        imports = homeModulesDefault;
+        imports = [ homeModule ];
         my.git.userName = "Test User";
         my.git.userEmail = "test@example.com";
         my.platform.nixGL.enable = false;

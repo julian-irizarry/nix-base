@@ -199,7 +199,7 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
 - **Hyprland keybinds mirror popshell/cosmic muscle memory.** See
   `home/desktop/hyprland/keybinds.nix` for the full list (Super+hjkl focus,
   Super+Shift+hjkl swap, Super+W close, Super+F zoom, Super+G float,
-  Super+O split, Super+Shift+O cycle layout, Ctrl+Space vicinae,
+  Super+O split, Super+Shift+O cycle layout, Alt+Space vicinae (Ctrl+Space is the herdr prefix),
   Super+Return wezterm). Layout cycle is a `pkgs.writeShellScriptBin` wrapper
   around `hyprctl keyword general:layout` because hyprland has no built-in
   layout-cycle dispatcher.
@@ -218,6 +218,26 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   `hm-nix-direnv.sh` (direnv sources `lib/*.sh` in glob order). A bare
   `nix develop` bypasses it; use `mbx build` there. `mbx doctor` warns the
   shim isn't installed because it only knows about `mbx setup`; ignore it.
+- **herdr is patched, so it builds from source.** `home/cli/herdr/` applies
+  `tab-colors.patch` to `pkgs.herdr` (active tab in `selection_bg`/`text`
+  with Powerline caps, inactive tabs in `subtext0`, tinted process icons from
+  the user's tab-icons plugin, and an `accent = true` flag on `text`/`command`
+  `ui.tab_bar_right` entries that stock herdr's config parser rejects, unfilled
+  popups, no prefix-mode hint bar, focused pane borders in `peach`, and
+  Shift+Enter sent as `\e[13;2u` to panes with no keyboard protocol so zsh's
+  autosuggest-accept binding works, the Go to navigator's selected row in the
+  active tab colors with tinted icons, and `q` closing popups and navigate
+  mode when no text field has focus) with `doCheck = false`
+  because upstream tests assert the stock colors. When a nixpkgs bump moves
+  herdr and the patch stops applying, regenerate it against the new source.
+  herdr's `config.toml` and plugins are not home-manager managed; its settings
+  UI writes to the config.
+- **wezterm hands tab/pane/workspace keys to herdr; kitty keeps its own.**
+  `home/terminal/wezterm/keymaps.lua` maps them to `DisableDefaultAssignment`
+  so they reach herdr, and `wezterm.nix` sets `enable_kitty_keyboard` (needed
+  for herdr to see `ctrl+shift+t`, `ctrl+1`, ...) and no longer applies the
+  smart-splits wezterm plugin, which would swallow `ctrl+hjkl`. kitty is the
+  native-multiplexer fallback; don't strip its tab/split bindings.
 - **Noctalia is v5: TOML config, not JSON settings.** `programs.noctalia.settings`
   is rendered to `~/.config/noctalia/config.toml` and validated at build time by
   `noctalia config validate` (so a bad key fails the build, not the session).

@@ -10,7 +10,6 @@
     package =
       if config.my.platform.nixGL.enable then config.lib.nixGL.wrap pkgs.wezterm else pkgs.wezterm;
     extraConfig = ''
-      local smart_splits = wezterm.plugin.require('https://github.com/mrjones2014/smart-splits.nvim')
       local rose_pine_black = require 'rose_pine_black'
       local keys = require 'keymaps'
       local tabline_config = require 'plugins.tabline'
@@ -65,6 +64,10 @@
         end
       end)
 
+      -- herdr enables the kitty keyboard protocol; without it ctrl+shift+t
+      -- arrives as ctrl+t and ctrl+1 as plain 1, so herdr can't bind them.
+      config.enable_kitty_keyboard = true
+
       config.keys = keys.keymaps()
       config.key_tables = keys.key_tables()
 
@@ -87,7 +90,6 @@
       config.inactive_pane_hsb = { saturation = 0.7, brightness = 0.6 }
 
       tabline.apply_to_config(config)
-      smart_splits.apply_to_config(config)
 
       -- Must come after plugin apply_to_config calls — tabline otherwise
       -- overwrites window_decorations.

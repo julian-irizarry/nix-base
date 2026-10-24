@@ -55,7 +55,7 @@ in
     ", Print, exec, hyprshot -m region --freeze"
 
     "SUPER, Return, exec, wezterm"
-    "CTRL, Space, exec, vicinae toggle"
+    "ALT, Space, exec, vicinae toggle"
 
     "SUPER, Escape, exec, noctalia msg session lock"
 

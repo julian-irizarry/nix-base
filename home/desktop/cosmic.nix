@@ -13,7 +13,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     force = true;
     text = ''
       {
-          (modifiers: [Ctrl], key: "space"): Spawn("vicinae toggle"),
+          (modifiers: [Alt], key: "space"): Spawn("vicinae toggle"),
           (modifiers: [Super], key: "Return"): Spawn("wezterm"),
       }
     '';

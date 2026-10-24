@@ -109,8 +109,19 @@ return {
 
   {
     "mrjones2014/smart-splits.nvim",
+    cond = vim.env.HERDR_ENV ~= "1",
     lazy = false,
     opts = { multiplexer_integration = "kitty" },
+  },
+
+  {
+    -- Also needs the herdr side: `herdr plugin install lmilojevicc/herdr-splits.nvim`
+    -- plus ctrl/alt+hjkl plugin_action binds in ~/.config/herdr/config.toml.
+    "lmilojevicc/herdr-splits.nvim",
+    cond = vim.env.HERDR_ENV == "1",
+    event = "VeryLazy",
+    -- setup() writes the conf the herdr-side scripts read.
+    opts = {},
   },
 
   {

@@ -1,0 +1,723 @@
+diff --git a/src/app/api/workspaces.rs b/src/app/api/workspaces.rs
+index 10544ba..d3bd2d7 100644
+--- a/src/app/api/workspaces.rs
++++ b/src/app/api/workspaces.rs
+@@ -57,7 +57,7 @@ impl App {
+         };
+         let cwd = params.cwd.map(PathBuf::from).unwrap_or_else(|| {
+             source_workspace_index.map_or_else(
+-                || self.resolve_new_terminal_cwd(None),
++                || self.resolve_new_workspace_cwd(None),
+                 |index| self.resolved_new_workspace_cwd_from(index),
+             )
+         });
+diff --git a/src/app/creation.rs b/src/app/creation.rs
+index 21e976c..4a45090 100644
+--- a/src/app/creation.rs
++++ b/src/app/creation.rs
+@@ -78,6 +78,15 @@ impl App {
+         resolve_new_terminal_cwd(&self.state.new_terminal_cwd, follow_cwd)
+     }
+ 
++    /// Local patch: workspaces use `new_workspace_cwd` when set, so a fixed
++    /// workspace root doesn't also move new panes and tabs.
++    pub(super) fn resolve_new_workspace_cwd(&self, follow_cwd: Option<PathBuf>) -> PathBuf {
++        match &self.state.new_workspace_cwd {
++            Some(policy) => resolve_new_terminal_cwd(policy, follow_cwd),
++            None => self.resolve_new_terminal_cwd(follow_cwd),
++        }
++    }
++
+     pub(crate) fn resolved_new_workspace_cwd_from(&self, ws_idx: usize) -> PathBuf {
+         let tab_idx = self
+             .state
+@@ -97,7 +106,7 @@ impl App {
+             .map(|tab| tab.layout.focused())
+             .and_then(|pane_id| self.launch_cwd_for_pane_in_workspace(ws_idx, pane_id))
+             .or_else(|| self.seed_cwd_from_workspace(ws_idx));
+-        self.resolve_new_terminal_cwd(follow_cwd)
++        self.resolve_new_workspace_cwd(follow_cwd)
+     }
+ 
+     pub(super) fn workspace_creation_source(&self) -> Option<usize> {
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index 6effa3a..ee502e9 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -541,6 +541,7 @@ impl App {
+             pane_gaps: config.ui.pane_gaps,
+             show_agent_labels_on_pane_borders: config.ui.show_agent_labels_on_pane_borders,
+             tab_bar_right: Vec::new(),
++            tab_bar_right_accent: Vec::new(),
+             tab_bar_right_separator: String::new(),
+             reveal_hidden_cursor_for_cjk_ime: config.experimental.reveal_hidden_cursor_for_cjk_ime,
+             cjk_ime_agent_filter_configured: !config.experimental.cjk_ime_agents.is_empty(),
+@@ -550,6 +551,7 @@ impl App {
+             default_shell: config.terminal.default_shell.clone(),
+             shell_mode: config.terminal.shell_mode,
+             new_terminal_cwd: config.terminal.new_cwd.clone(),
++            new_workspace_cwd: config.terminal.new_workspace_cwd.clone(),
+             pane_scrollback_limit_bytes: config.advanced.scrollback_limit_bytes,
+             sound: config.ui.sound.clone(),
+             toast_config: config.ui.toast.clone(),
+@@ -764,7 +766,7 @@ impl App {
+             return false;
+         }
+ 
+-        let cwd = self.resolve_new_terminal_cwd(None);
++        let cwd = self.resolve_new_workspace_cwd(None);
+         let preserve_checkpoint = self.pane_exit_checkpoint_pending && !self.state.session_dirty;
+ 
+         match self.create_workspace_with_options(cwd, true) {
+@@ -1002,6 +1004,7 @@ impl App {
+             self.state.default_shell = config.terminal.default_shell.clone();
+             self.state.shell_mode = config.terminal.shell_mode;
+             self.state.new_terminal_cwd = config.terminal.new_cwd.clone();
++            self.state.new_workspace_cwd = config.terminal.new_workspace_cwd.clone();
+         }
+ 
+         if !invalid_section("worktrees") {
+diff --git a/src/app/state.rs b/src/app/state.rs
+index f30279d..78a7ca8 100644
+--- a/src/app/state.rs
++++ b/src/app/state.rs
+@@ -836,6 +836,8 @@ pub struct AppState {
+     pub pane_gaps: bool,
+     pub show_agent_labels_on_pane_borders: bool,
+     pub tab_bar_right: Vec<TabBarStatusSegment>,
++    /// Local patch: accent flag per tab_bar_right segment, same indexes.
++    pub tab_bar_right_accent: Vec<bool>,
+     pub tab_bar_right_separator: String,
+     /// Expose the focused pane's cursor anchor to the outer terminal even when
+     /// the pane requested `?25l`. See `[experimental] reveal_hidden_cursor_for_cjk_ime`.
+@@ -850,6 +852,7 @@ pub struct AppState {
+     pub default_shell: String,
+     pub shell_mode: crate::config::ShellModeConfig,
+     pub new_terminal_cwd: NewTerminalCwdConfig,
++    pub new_workspace_cwd: Option<NewTerminalCwdConfig>,
+     pub pane_scrollback_limit_bytes: usize,
+     pub sound: SoundConfig,
+     pub toast_config: ToastConfig,
+@@ -1078,6 +1081,7 @@ impl AppState {
+             pane_gaps: false,
+             show_agent_labels_on_pane_borders: false,
+             tab_bar_right: Vec::new(),
++            tab_bar_right_accent: Vec::new(),
+             tab_bar_right_separator: " ".into(),
+             reveal_hidden_cursor_for_cjk_ime: false,
+             cjk_ime_agent_filter_configured: false,
+@@ -1087,6 +1091,7 @@ impl AppState {
+             default_shell: String::new(),
+             shell_mode: crate::config::ShellModeConfig::Auto,
+             new_terminal_cwd: NewTerminalCwdConfig::Follow,
++            new_workspace_cwd: None,
+             pane_scrollback_limit_bytes: crate::config::DEFAULT_SCROLLBACK_LIMIT_BYTES,
+             sound: SoundConfig {
+                 enabled: false,
+diff --git a/src/app/tab_bar_status.rs b/src/app/tab_bar_status.rs
+index 596c211..98d7e1d 100644
+--- a/src/app/tab_bar_status.rs
++++ b/src/app/tab_bar_status.rs
+@@ -51,6 +51,7 @@ impl App {
+         self.tab_bar_datetimes.clear();
+         self.tab_bar_commands.clear();
+         self.state.tab_bar_right.clear();
++        self.state.tab_bar_right_accent.clear();
+         self.state.tab_bar_right_separator = sanitize_separator(separator);
+ 
+         let now = std::time::Instant::now();
+@@ -58,6 +59,12 @@ impl App {
+             .iter()
+             .take(crate::config::MAX_TAB_BAR_RIGHT_ENTRIES)
+         {
++            let before = self.state.tab_bar_right.len();
++            let accent = matches!(
++                entry,
++                TabBarRightEntryConfig::Text { accent: true, .. }
++                    | TabBarRightEntryConfig::Command { accent: true, .. }
++            );
+             match entry {
+                 TabBarRightEntryConfig::Zoom => {
+                     self.state.tab_bar_right.push(TabBarStatusSegment::Zoom);
+@@ -83,7 +90,7 @@ impl App {
+                         format,
+                     });
+                 }
+-                TabBarRightEntryConfig::Text { text } => {
++                TabBarRightEntryConfig::Text { text, .. } => {
+                     self.state
+                         .tab_bar_right
+                         .push(TabBarStatusSegment::Text(sanitize_literal_text(text)));
+@@ -92,6 +99,7 @@ impl App {
+                     command,
+                     interval_seconds,
+                     timeout_seconds,
++                    ..
+                 } => {
+                     if !crate::platform::status_commands_supported()
+                         || command.trim().is_empty()
+@@ -116,6 +124,9 @@ impl App {
+                     });
+                 }
+             }
++            if self.state.tab_bar_right.len() > before {
++                self.state.tab_bar_right_accent.push(accent);
++            }
+         }
+ 
+         self.next_tab_bar_datetime_refresh =
+diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
+index b7ab4a9..eaa540d 100644
+--- a/src/client/shell/composition.rs
++++ b/src/client/shell/composition.rs
+@@ -571,7 +571,8 @@ impl ClientShellState {
+                     .borders(ratatui::widgets::Borders::ALL)
+                     .border_style(ratatui::style::Style::default().fg(self.config.palette.accent))
+                     .title(popup.title.clone())
+-                    .style(ratatui::style::Style::default().bg(self.config.palette.panel_bg));
++                    // Local patch: unfilled frame, see overlay_palette below.
++                    .style(ratatui::style::Style::default().bg(ratatui::style::Color::Reset));
+                 ratatui::widgets::Widget::render(
+                     ratatui::widgets::Clear,
+                     geometry.outer,
+@@ -644,9 +645,16 @@ impl ClientShellState {
+         }
+         if let Some(overlay) = self.overlay.as_ref() {
+             let mut composed = frame.to_ratatui_buffer()?;
++            // Local patch: overlays draw with no fill. A box border sits mid-cell,
++            // so a filled panel shows its background half a cell outside the
++            // line; transparent popups avoid that and match the sidebar.
++            let overlay_palette = crate::app::state::Palette {
++                panel_bg: ratatui::style::Color::Reset,
++                ..self.config.palette.clone()
++            };
+             let cursor = if let ClientShellOverlay::ContextMenu(menu) = overlay {
+                 let rendered =
+-                    render::render_context_menu(&mut composed, menu, &self.config.palette)?;
++                    render::render_context_menu(&mut composed, menu, &overlay_palette)?;
+                 occlusion.cover(rendered.area);
+                 self.hits.context_menu_rows = rendered.menu_rows;
+                 None
+@@ -656,7 +664,7 @@ impl ClientShellState {
+                     self.hits.global_launcher,
+                     menu,
+                     snapshot,
+-                    &self.config.palette,
++                    &overlay_palette,
+                 )?;
+                 occlusion.cover(rendered.area);
+                 self.hits.global_menu_rows = rendered.menu_rows;
+@@ -669,7 +677,7 @@ impl ClientShellState {
+                     &self.endpoints,
+                     &self.active_endpoint_id,
+                     &self.config.keybinds,
+-                    &self.config.palette,
++                    &overlay_palette,
+                 )?;
+                 occlusion.cover(rendered.area);
+                 self.hits.overlay_primary = rendered.primary;
+diff --git a/src/client/shell/input.rs b/src/client/shell/input.rs
+index ee92d59..546c180 100644
+--- a/src/client/shell/input.rs
++++ b/src/client/shell/input.rs
+@@ -756,7 +756,11 @@ impl ClientShellState {
+         use crate::input::{KeybindAction, KeybindDispatch, KeybindMatch};
+ 
+         self.pending_workspace_highlight = None;
+-        if key.code == KeyCode::Esc || self.config.keybinds.matches_prefix(key) {
++        // Local patch: q leaves navigate mode like esc.
++        if key.code == KeyCode::Esc
++            || key.code == KeyCode::Char('q') && key.modifiers.is_empty()
++            || self.config.keybinds.matches_prefix(key)
++        {
+             self.cancel_navigate(outcome);
+             return;
+         }
+diff --git a/src/client/shell/overlay_input.rs b/src/client/shell/overlay_input.rs
+index 7f797ef..edb5d79 100644
+--- a/src/client/shell/overlay_input.rs
++++ b/src/client/shell/overlay_input.rs
+@@ -492,7 +492,9 @@ impl ClientShellState {
+             Some(ClientShellOverlay::ProductAnnouncement(_))
+         ) {
+             match key.code {
+-                KeyCode::Enter | KeyCode::Esc => self.dismiss_product_announcement(outcome),
++                KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
++                    self.dismiss_product_announcement(outcome)
++                }
+                 KeyCode::Up | KeyCode::Char('k') => {
+                     self.scroll_product_announcement(-1);
+                     outcome.repaint = true;
+@@ -534,7 +536,9 @@ impl ClientShellState {
+ 
+         if matches!(self.overlay, Some(ClientShellOverlay::ReleaseNotes(_))) {
+             match key.code {
+-                KeyCode::Enter | KeyCode::Esc => self.dismiss_release_notes(outcome),
++                KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
++                    self.dismiss_release_notes(outcome)
++                }
+                 KeyCode::Up | KeyCode::Char('k') => {
+                     self.scroll_release_notes(-1);
+                     outcome.repaint = true;
+@@ -571,7 +575,8 @@ impl ClientShellState {
+ 
+         if matches!(self.overlay, Some(ClientShellOverlay::GlobalMenu(_))) {
+             match key.code {
+-                KeyCode::Esc => {
++                // Local patch: q closes like esc.
++                KeyCode::Esc | KeyCode::Char('q') => {
+                     self.overlay = None;
+                     outcome.repaint = true;
+                 }
+@@ -601,7 +606,8 @@ impl ClientShellState {
+ 
+         if matches!(self.overlay, Some(ClientShellOverlay::ContextMenu(_))) {
+             match key.code {
+-                KeyCode::Esc => {
++                // Local patch: q closes like esc.
++                KeyCode::Esc | KeyCode::Char('q') => {
+                     self.overlay = None;
+                     outcome.repaint = true;
+                 }
+@@ -637,6 +643,12 @@ impl ClientShellState {
+                     ..
+                 }))
+             );
++            // Local patch: q closes like esc unless the search is taking text.
++            if !search_focused && code == KeyCode::Char('q') && modifiers.is_empty() {
++                self.overlay = None;
++                outcome.repaint = true;
++                return;
++            }
+             if code == KeyCode::Esc {
+                 if search_focused {
+                     if let Some(ClientShellOverlay::Navigator(navigator)) = self.overlay.as_mut() {
+@@ -679,8 +691,13 @@ impl ClientShellState {
+                 }
+                 return;
+             }
+-            if matches!(code, KeyCode::Left | KeyCode::Right) && modifiers.is_empty() {
+-                self.move_navigator_workspace(code == KeyCode::Right);
++            // Local patch: h/l move between workspaces like the arrows, to go with j/k rows.
++            if matches!(
++                code,
++                KeyCode::Left | KeyCode::Right | KeyCode::Char('h') | KeyCode::Char('l')
++            ) && modifiers.is_empty()
++            {
++                self.move_navigator_workspace(matches!(code, KeyCode::Right | KeyCode::Char('l')));
+                 outcome.repaint = true;
+                 return;
+             }
+@@ -839,6 +856,8 @@ impl ClientShellState {
+ 
+             match code {
+                 KeyCode::Esc | KeyCode::Enter => self.overlay = None,
++                // Local patch: q closes like esc.
++                KeyCode::Char('q') if modifiers.is_empty() => self.overlay = None,
+                 KeyCode::Home => {
+                     if let Some(ClientShellOverlay::Help(help)) = self.overlay.as_mut() {
+                         help.scroll = 0;
+diff --git a/src/client/shell/overlays.rs b/src/client/shell/overlays.rs
+index f26cc6e..4737d11 100644
+--- a/src/client/shell/overlays.rs
++++ b/src/client/shell/overlays.rs
+@@ -844,12 +844,9 @@ fn render_navigator_overlay(
+                     p.panel_bg
+                 })
+                 .add_modifier(Modifier::DIM)
+-        } else if ix == selected {
+-            Style::default()
+-                .fg(contrast(p))
+-                .bg(p.accent)
+-                .add_modifier(Modifier::BOLD)
+         } else {
++            // Local patch: the selected row only swaps in the active tab's
++            // background; its text, icons and status keep their colors.
+             Style::default()
+                 .fg(
+                     if matches!(r.target, ClientNavigatorTarget::Machine { .. }) {
+@@ -858,7 +855,11 @@ fn render_navigator_overlay(
+                         p.text
+                     },
+                 )
+-                .bg(p.panel_bg)
++                .bg(if ix == selected {
++                    super::tabs::tab_active_bg(p)
++                } else {
++                    p.panel_bg
++                })
+         };
+         let is_pane = matches!(r.target, ClientNavigatorTarget::Pane { .. });
+         let connector = if !is_pane {
+@@ -903,6 +904,24 @@ fn render_navigator_overlay(
+             &label,
+             st,
+         );
++        // Local patch: tint the tab-icons process icon as the tab bar does.
++        if !r.stale {
++            if let Some(color) = r
++                .label
++                .chars()
++                .next()
++                .and_then(super::tabs::label_icon_color)
++            {
++                let icon_x = rect.x.saturating_add(display_width(&format!(
++                    "{indent}{current}{status}{status_separator}"
++                )));
++                if icon_x < rect.right().saturating_sub(columns) {
++                    if let Some(cell) = b.cell_mut((icon_x, rect.y)) {
++                        cell.set_fg(color);
++                    }
++                }
++            }
++        }
+         if is_pane {
+             put_text(
+                 b,
+@@ -910,19 +929,15 @@ fn render_navigator_overlay(
+                 rect.y,
+                 rect.right().saturating_sub(connector_x).min(2),
+                 connector,
+-                if r.stale || ix == selected {
+-                    st
+-                } else {
+-                    st.fg(p.overlay0)
+-                },
++                if r.stale { st } else { st.fg(p.overlay0) },
+             );
+         }
+         if let Some(status) = r.status {
+             let prefix = format!("{indent}{current}");
+-            let status_style = if r.stale || ix == selected {
++            let status_style = if r.stale {
+                 st
+             } else {
+-                Style::default().fg(status_color(status, p)).bg(p.panel_bg)
++                st.fg(status_color(status, p))
+             };
+             put_text(
+                 b,
+@@ -932,11 +947,7 @@ fn render_navigator_overlay(
+                 status_dot(status),
+                 status_style,
+             );
+-            let meta_style = if r.stale || ix == selected {
+-                st
+-            } else {
+-                st.fg(p.overlay0)
+-            };
++            let meta_style = if r.stale { st } else { st.fg(p.overlay0) };
+             if columns > 0 {
+                 put_text(
+                     b,
+@@ -976,18 +987,14 @@ fn render_navigator_overlay(
+             } else {
+                 format!("{glyph} {state}")
+             };
+-            let signal_style = if ix == selected {
+-                st
+-            } else {
+-                Style::default()
+-                    .fg(color)
+-                    .bg(p.panel_bg)
+-                    .add_modifier(if r.stale {
+-                        Modifier::DIM
+-                    } else {
+-                        Modifier::empty()
+-                    })
+-            };
++            let signal_style = Style::default()
++                .fg(color)
++                .bg(st.bg.unwrap_or(p.panel_bg))
++                .add_modifier(if r.stale {
++                    Modifier::DIM
++                } else {
++                    Modifier::empty()
++                });
+             put_right_text(b, rect, rect.y, &signal, signal_style);
+         } else if r.status.is_none() && !r.meta.is_empty() {
+             let label_width = display_width(&label).min(rect.width);
+@@ -1029,7 +1036,8 @@ fn render_navigator_overlay(
+         if n.search_focused {
+             " search type · move ↑↓/ctrl+n/p · open enter · back esc"
+         } else {
+-            " ↑↓/j/k rows · ←→ workspace · / search · a/b/w/i/d filter · enter open · esc close"
++            // Local patch: hint the h/l workspace keys.
++            " ↑↓/j/k rows · ←→/h/l workspace · / search · a/b/w/i/d filter · enter open · esc close"
+         },
+         Style::default().fg(p.overlay0).bg(p.panel_bg),
+     );
+diff --git a/src/client/shell/render.rs b/src/client/shell/render.rs
+index 248216c..a401d0d 100644
+--- a/src/client/shell/render.rs
++++ b/src/client/shell/render.rs
+@@ -38,7 +38,11 @@ pub(super) fn render_mode_bar(
+     keybinds: &LiveKeybindConfig,
+     palette: &Palette,
+ ) -> Option<Rect> {
+-    if (mode == ClientShellMode::Terminal && endpoint_error.is_none()) || pane_area.is_empty() {
++    // Local patch: no hint bar for prefix mode; the next key still applies.
++    if (matches!(mode, ClientShellMode::Terminal | ClientShellMode::Prefix)
++        && endpoint_error.is_none())
++        || pane_area.is_empty()
++    {
+         return None;
+     }
+ 
+diff --git a/src/client/shell/tabs.rs b/src/client/shell/tabs.rs
+index 3fdcf7d..b9c3c83 100644
+--- a/src/client/shell/tabs.rs
++++ b/src/client/shell/tabs.rs
+@@ -100,19 +100,16 @@ pub(crate) fn render_tab_bar(
+             break;
+         }
+         let rect = Rect::new(x, area.y, width, 1);
++        // Local patch: the active tab is text on tab_active_bg(), inactive tabs
++        // subtext0 on the bar background, matching the wezterm tabline. No
++        // bold or dimming for custom labels: the tab-icons plugin renames
++        // every tab.
+         let style = if tab.focused {
+-            let base = Style::default()
+-                .fg(panel_contrast_fg(palette))
+-                .bg(palette.accent);
+-            if tab.custom_label {
+-                base.add_modifier(Modifier::BOLD)
+-            } else {
+-                base
+-            }
+-        } else if tab.custom_label {
+-            Style::default().fg(palette.overlay1).bg(palette.surface0)
++            Style::default()
++                .fg(palette.text)
++                .bg(tab_active_bg(palette))
+         } else {
+-            Style::default().fg(palette.overlay0).bg(palette.surface0)
++            Style::default().fg(palette.subtext0).bg(palette.panel_bg)
+         };
+         let padding = width.saturating_sub(display_width(&name));
+         let left = padding / 2;
+@@ -123,6 +120,10 @@ pub(crate) fn render_tab_bar(
+             right_padding = padding.saturating_sub(left) as usize,
+         );
+         put_text(buffer, rect.x, rect.y, rect.width, &text, style);
++        tint_label_icon(buffer, rect, left, &name);
++        if tab.focused && left >= 1 && padding.saturating_sub(left) >= 1 {
++            draw_active_tab_caps(buffer, rect, palette);
++        }
+         hits.tabs.push((rect, tab.tab_id.clone()));
+         first_visible.get_or_insert(index);
+         last_visible = Some(index);
+@@ -284,7 +285,8 @@ fn render_tab_bar_status(
+                 .bg(palette.accent)
+                 .add_modifier(Modifier::BOLD)
+         } else {
+-            Style::default().fg(palette.overlay1).bg(palette.panel_bg)
++            // Local patch: same text color as inactive tabs.
++            Style::default().fg(palette.subtext0).bg(palette.panel_bg)
+         };
+         put_text(buffer, x, area.y, width, &segment.text, style);
+         x = x.saturating_add(width);
+@@ -371,6 +373,62 @@ fn max_tab_scroll(widths: &[u16], available: u16) -> usize {
+     start
+ }
+ 
++// Local patch: color a leading process icon (as written by the tab-icons
++// plugin) the way the wezterm tabline does. The label stays plain text.
++pub(super) fn label_icon_color(icon: char) -> Option<ratatui::style::Color> {
++    use ratatui::style::Color::Rgb;
++    // Colors from the wezterm tabline (tabline.wez process icons on the
++    // "iTerm2 Pastel Dark Background" scheme, plus its nvim/ssh overrides).
++    Some(match icon {
++        '\u{2733}' => Rgb(0xe8, 0x88, 0x5c),                // claude
++        '\u{e795}' => Rgb(0xff, 0xb4, 0x73),                // zsh/bash/fish
++        '\u{e6ae}' => Rgb(0xa6, 0xe3, 0xa1),                // nvim
++        '\u{f048b}' => Rgb(0xf5, 0xc2, 0xe7),               // ssh
++        '\u{e7a8}' | '\u{f0127}' => Rgb(0xff, 0x83, 0x73),  // cargo, btop
++        '\u{e702}' => Rgb(0xff, 0xfe, 0xd5),                // git
++        '\u{f313}' | '\u{f0868}' => Rgb(0xa5, 0xd5, 0xfe),  // nix, docker
++        '\u{f07d3}' => Rgb(0xc2, 0xe3, 0xff),               // go
++        '\u{f0399}' => Rgb(0xff, 0xc4, 0xbe),               // node
++        _ => return None,
++    })
++}
++
++// Local patch: the active tab borrows selection_bg (otherwise only the
++// navigate-mode cursor row) so the sidebar's active_row_bg can differ.
++pub(super) fn tab_active_bg(palette: &Palette) -> ratatui::style::Color {
++    match palette.selection_bg {
++        ratatui::style::Color::Reset => palette.active_row_bg,
++        color => color,
++    }
++}
++
++// Local patch: Powerline caps on the active tab, drawn in its padding cells
++// so tab widths and hit areas are unchanged.
++fn draw_active_tab_caps(buffer: &mut Buffer, rect: Rect, palette: &Palette) {
++    let cap = Style::default().fg(tab_active_bg(palette)).bg(palette.panel_bg);
++    let right = rect.right().saturating_sub(1);
++    for (x, glyph) in [(rect.x, "\u{e0b2}"), (right, "\u{e0b0}")] {
++        if let Some(cell) = buffer.cell_mut((x, rect.y)) {
++            cell.set_symbol(glyph).set_style(cap);
++        }
++    }
++}
++
++fn tint_label_icon(buffer: &mut Buffer, rect: Rect, left: u16, name: &str) {
++    let Some(icon) = name.chars().next() else {
++        return;
++    };
++    let Some(color) = label_icon_color(icon) else {
++        return;
++    };
++    let x = rect.x.saturating_add(left);
++    if x < rect.right() {
++        if let Some(cell) = buffer.cell_mut((x, rect.y)) {
++            cell.set_fg(color);
++        }
++    }
++}
++
+ fn tab_label(tab: &ClientShellTab) -> String {
+     if tab.zoomed {
+         format!("{} Z", tab.label)
+diff --git a/src/config/model.rs b/src/config/model.rs
+index 29802fd..6241c60 100644
+--- a/src/config/model.rs
++++ b/src/config/model.rs
+@@ -258,6 +258,8 @@ pub struct TerminalConfig {
+     pub shell_mode: ShellModeConfig,
+     /// CWD policy for new interactive panes, tabs, and workspaces.
+     pub new_cwd: NewTerminalCwdConfig,
++    /// Local patch: CWD policy for new workspaces only; unset uses `new_cwd`.
++    pub new_workspace_cwd: Option<NewTerminalCwdConfig>,
+     /// Render Kitty graphics in compatible outer terminals. Default: true.
+     pub kitty_graphics: Option<bool>,
+ }
+diff --git a/src/config/tab_bar.rs b/src/config/tab_bar.rs
+index 253b1b7..a3f796a 100644
+--- a/src/config/tab_bar.rs
++++ b/src/config/tab_bar.rs
+@@ -29,6 +29,9 @@ pub enum TabBarRightEntryConfig {
+     },
+     Text {
+         text: String,
++        // Local patch: render as an accent pill like the zoom segment.
++        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++        accent: bool,
+     },
+     Command {
+         command: String,
+@@ -36,6 +39,8 @@ pub enum TabBarRightEntryConfig {
+         interval_seconds: u64,
+         #[serde(default = "default_command_timeout_seconds")]
+         timeout_seconds: u64,
++        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++        accent: bool,
+     },
+ }
+ 
+@@ -76,6 +81,7 @@ pub(crate) fn tab_bar_right_diagnostics(entries: &[TabBarRightEntryConfig]) -> V
+                 command,
+                 interval_seconds,
+                 timeout_seconds,
++                ..
+             } => {
+                 if command.trim().is_empty() {
+                     diagnostics.push(format!(
+diff --git a/src/main.rs b/src/main.rs
+index f97e7e2..c83d4cb 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -116,6 +116,8 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+ # Use "follow" to inherit the source pane/workspace, "home" for $HOME,
+ # "current" for Herdr's process directory, or a fixed path such as "~/Projects".
+ # new_cwd = "follow"
++# Same values, for new workspaces only. Unset uses new_cwd.
++# new_workspace_cwd = "~/Projects"
+ 
+ # Render pane images in Kitty graphics-compatible outer terminals.
+ # kitty_graphics = true
+diff --git a/src/pane/terminal.rs b/src/pane/terminal.rs
+index d4b7ef5..53f597d 100644
+--- a/src/pane/terminal.rs
++++ b/src/pane/terminal.rs
+@@ -2043,6 +2043,17 @@ impl GhosttyPaneTerminal {
+             return Vec::new();
+         };
+         let negotiated_nothing = keyboard_negotiated_nothing(&core.terminal);
++        // Local patch: legacy encoding turns Shift+Enter into a bare CR, so a
++        // plain shell can't tell it from Enter. Send the CSI-u form instead,
++        // as the outer terminal (wezterm SendString) does outside herdr; zsh
++        // binds it to autosuggest-accept.
++        if negotiated_nothing
++            && key.code == crossterm::event::KeyCode::Enter
++            && key.modifiers == crossterm::event::KeyModifiers::SHIFT
++            && key.kind != crossterm::event::KeyEventKind::Release
++        {
++            return b"\x1b[13;2u".repeat(usize::from(key.repeat_count.max(1)));
++        }
+         // Before the Windows record fallback too: a remote client can report
+         // Super, and a record would deliver the bare key (#3710).
+         if negotiated_nothing && legacy_super_chord(&key) {
+diff --git a/src/server/client_shell.rs b/src/server/client_shell.rs
+index 0a98da0..3ec098f 100644
+--- a/src/server/client_shell.rs
++++ b/src/server/client_shell.rs
+@@ -202,7 +202,8 @@ pub(super) fn snapshot_with_completions(
+         .state
+         .tab_bar_right
+         .iter()
+-        .filter_map(|segment| match segment {
++        .enumerate()
++        .filter_map(|(index, segment)| match segment {
+             crate::app::state::TabBarStatusSegment::Zoom if zoomed => {
+                 Some(protocol::ClientShellTabStatusSegment {
+                     text: "ZOOM".to_owned(),
+@@ -210,9 +211,20 @@ pub(super) fn snapshot_with_completions(
+                 })
+             }
+             crate::app::state::TabBarStatusSegment::Text(Some(text)) if !text.is_empty() => {
++                let accent = app
++                    .state
++                    .tab_bar_right_accent
++                    .get(index)
++                    .copied()
++                    .unwrap_or(false);
++                // Status text is trimmed, so pad accent pills here.
+                 Some(protocol::ClientShellTabStatusSegment {
+-                    text: text.clone(),
+-                    accent: false,
++                    text: if accent {
++                        format!(" {text} ")
++                    } else {
++                        text.clone()
++                    },
++                    accent,
+                 })
+             }
+             crate::app::state::TabBarStatusSegment::Zoom
+diff --git a/src/ui/panes.rs b/src/ui/panes.rs
+index 6a91f18..652cf9e 100644
+--- a/src/ui/panes.rs
++++ b/src/ui/panes.rs
+@@ -596,8 +596,10 @@ fn render_pane_borders(
+         }
+         let cell = &mut buf[(x, y)];
+         cell.set_symbol(symbol);
++        // Local patch: focused pane borders use the otherwise-unused peach
++        // token so they can differ from accent (status pill, popups).
+         let color = if focused {
+-            app.palette.accent
++            app.palette.peach
+         } else {
+             app.palette.overlay0
+         };
+@@ -764,7 +766,7 @@ fn render_pane_border_titles(
+             continue;
+         }
+         let color = if info.is_focused {
+-            app.palette.accent
++            app.palette.peach
+         } else {
+             app.palette.overlay0
+         };

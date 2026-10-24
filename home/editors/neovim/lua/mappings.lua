@@ -2,11 +2,21 @@ require "nvchad.mappings"
 
 local map = vim.keymap.set
 
--- Smart splits navigation (seamless nvim/wezterm pane navigation)
-map("n", "<C-h>", require("smart-splits").move_cursor_left, { desc = "Move to left split/pane" })
-map("n", "<C-j>", require("smart-splits").move_cursor_down, { desc = "Move to below split/pane" })
-map("n", "<C-k>", require("smart-splits").move_cursor_up, { desc = "Move to above split/pane" })
-map("n", "<C-l>", require("smart-splits").move_cursor_right, { desc = "Move to right split/pane" })
+-- Seamless nvim split / terminal pane navigation: herdr-splits inside herdr
+-- panes, smart-splits elsewhere. Both expose the same move_cursor_* API.
+local in_herdr = vim.env.HERDR_ENV == "1"
+local splits = require(in_herdr and "herdr-splits" or "smart-splits")
+map("n", "<C-h>", splits.move_cursor_left, { desc = "Move to left split/pane" })
+map("n", "<C-j>", splits.move_cursor_down, { desc = "Move to below split/pane" })
+map("n", "<C-k>", splits.move_cursor_up, { desc = "Move to above split/pane" })
+map("n", "<C-l>", splits.move_cursor_right, { desc = "Move to right split/pane" })
+if in_herdr then
+  -- herdr forwards alt+hjkl here; these shadow NvChad's <A-h> terminal toggle.
+  map("n", "<M-h>", splits.resize_left, { desc = "Resize split/pane left" })
+  map("n", "<M-j>", splits.resize_down, { desc = "Resize split/pane down" })
+  map("n", "<M-k>", splits.resize_up, { desc = "Resize split/pane up" })
+  map("n", "<M-l>", splits.resize_right, { desc = "Resize split/pane right" })
+end
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("i", "jk", "<ESC>")

@@ -83,6 +83,17 @@ Activate: `sudo nixos-rebuild switch --flake .#workstation`
 
 Activate: `home-manager switch --flake .#x86_64-linux` or `.#aarch64-darwin`
 
+Set `programs.nh.flake` to your consumer checkout and the zsh `hms` helper
+prefills `nh home switch` for the current system from any directory.
+
+### Without the helpers
+
+`homeModules.default` and `nixosModules.default` are self-contained (they bring
+their own third-party modules), so they can be imported into a
+`homeManagerConfiguration` or `nixosSystem` you build yourself. `mkHome` /
+`mkSystem` add only `allowUnfree`, the `inputs` special arg, and the
+home-manager-in-NixOS wiring.
+
 ## NixOS options (`sys.*`)
 
 | Option                           | Type        | Default              | Description                                            |
@@ -145,6 +156,7 @@ Missing deps don't break noctalia — the affected widgets just show no data.
 | `my.git.signingFormat`       | enum        | `"ssh"`                | openpgp, ssh, x509                                   |
 | `my.git.extraIncludes`       | list        | `[]`                   | Conditional gitconfig includes                       |
 | `my.zsh.extraInitFragments`  | list        | `[]`                   | Shell snippets appended to .zshrc                    |
+| `my.nh.homeConfiguration`    | str         | current system         | homeConfigurations name `hms` switches               |
 | `my.ssh.extraHosts`          | attrs       | `{}`                   | SSH matchBlocks                                      |
 | `my.font.nerdFamily`         | str         | `"fira-code"`          | Nerd font attr name                                  |
 | `my.font.name`               | str         | `"FiraCode Nerd Font"` | Font family for terminals/editors                    |

@@ -21,6 +21,9 @@ nix build .#checks.aarch64-darwin.home
 
 # Smoke-build the NixOS system toplevel (Linux only)
 nix build .#checks.x86_64-linux.nixos
+
+# Run Hyprland's config verifier on the generated hyprland.conf (Linux only)
+nix build .#checks.x86_64-linux.hyprland-config
 ```
 
 Supported systems: `x86_64-linux`, `aarch64-darwin`. `mkHome` accepts a `systems`
@@ -30,12 +33,17 @@ arg to add more.
 
 - `flake.nix` — exposes `homeModules.default`, `nixosModules.default`,
   `lib.mkHome`, `lib.mkSystem`, `formatter`, `checks`. Smoke builds verify
-  both module trees with placeholder values.
+  both module trees with placeholder values. `homeModule` / `nixosModule` are
+  defined once here and used by the exports, both `lib` wrappers, and the VM
+  test, so there is a single module list to keep in sync.
 - `lib/mkHome.nix` — thin wrapper over `home-manager.lib.homeManagerConfiguration`;
   returns an attrset keyed by system string.
 - `lib/mkSystem.nix` — thin wrapper over `nixpkgs.lib.nixosSystem`; optionally
   integrates home-manager as a NixOS module when `homeModules` is provided.
   Sets `my.platform.nixGL.enable = false` for NixOS-integrated home-manager.
+  Both wrappers still pass an `inputs` special arg (nix-base's inputs for home,
+  `extraInputs` for NixOS) for consumers' own modules; nix-base's modules don't
+  read it.
 - `home/options.nix` — the home-manager **public contract** under `my.*`.
 - `home/default.nix` — imports every topical home-manager folder.
 - `home/home-defaults.nix` — derives `home.homeDirectory` from `home.username`.
@@ -45,8 +53,8 @@ arg to add more.
 - `nixos/default.nix` — imports every NixOS submodule.
 - `nixos/{boot,desktop,hardware,networking,nix,programs,security,services,users,virtualisation}/`
   — topical NixOS module folders. Feature-gated modules use `lib.mkIf config.sys.*`.
-- `nixos/installer/default.nix` — imports `disko.nixosModules.disko` and emits
-  `image.modules.iso-installer` with an `install-image` shell wrapper. Build with
+- `nixos/installer/default.nix` — emits `image.modules.iso-installer` with an
+  `install-image` shell wrapper (disko comes from `nixosModules.default`). Build with
   `nh os build-image --image-variant=iso-installer -H <host>` or
   `nix build .#nixosConfigurations.<host>.config.system.build.images.iso-installer`.
 
@@ -63,6 +71,10 @@ Only values that genuinely differ between consumers are options. Everything else
 - `my.zsh.extraInitFragments` — list of shell snippets concatenated at the **end**
   of the generated `.zshrc`. Primary secret-wiring mechanism (e.g. `op read` at
   shell init). Graceful fallback when `op` is missing is the fragment author's job.
+- `my.nh.homeConfiguration` — `homeConfigurations` name the zsh `hms` helper
+  passes to `nh home switch -c`; defaults to the system string (mkHome's keys).
+  Under NixOS-integrated home-manager (`osConfig` set) `hms` uses
+  `nh os switch` instead. Consumers point `programs.nh.flake` at their checkout.
 - `my.ssh.extraHosts` — attrset of matchBlock specs, rendered to
   `~/.ssh/config.d/hm-hosts` (not `~/.ssh/config` — see SSH gotcha below).
 - `my.font.{nerdFamily,name,size}` — `nerdFamily` indexes `pkgs.nerd-fonts.*`;
@@ -71,8 +83,7 @@ Only values that genuinely differ between consumers are options. Everything else
   (keybinds, window rules, exec-once for the shell). `shell` is an enum
   currently fixed at `"noctalia"`; shaped for future alternatives.
   Independent of `sys.desktop.hyprland.enable` on the NixOS side — pair them
-  yourself. `noctalia` is threaded in via `extraSpecialArgs` so the home
-  sub-module can reference `noctalia.packages.${system}.default`.
+  yourself.
 
 ## The `sys.*` option surface
 
@@ -192,13 +203,21 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   Super+Return wezterm). Layout cycle is a `pkgs.writeShellScriptBin` wrapper
   around `hyprctl keyword general:layout` because hyprland has no built-in
   layout-cycle dispatcher.
-- **Noctalia is threaded via extraSpecialArgs.** `lib/mkHome.nix`,
-  `lib/mkSystem.nix`, and `nixos/tests/default.nix` all pass the `noctalia`
-  flake input into home-manager's `extraSpecialArgs`. `home/desktop/hyprland/
-noctalia.nix` receives it as a module arg and wires
-  `programs.noctalia.package = noctalia.packages.${system}.default`.
-  If you add new mkHome/mkSystem paths, remember to thread noctalia the same
-  way or the module will eval-error.
+- **nix-base's own inputs reach home modules as `nixBaseInputs`.** `homeModule`
+  in `flake.nix` sets `_module.args.nixBaseInputs = inputs`, which is how
+  `noctalia.nix` gets the noctalia package and `hyprland/default.nix` gets the
+  Hyprspace source. Don't read the `inputs` special arg in nix-base modules:
+  it belongs to the consumer and is absent when `homeModules.default` is
+  imported directly. `_module.args` can't feed `imports`, so third-party
+  modules (vicinae, noctalia, nix-index-database; determinate and disko on
+  NixOS) are imported in `homeModule` / `nixosModule` instead.
+- **mbx (mr-boxington) hooks into direnv, not the global PATH.**
+  `home/cli/mbx.nix` drops `direnv/lib/mbx.sh`, which wraps nix-direnv's
+  `use_flake` / `use_nix` to re-prepend mbx's cargo shim after the dev shell
+  loads; the shim delegates to the shell's own cargo. It must sort after
+  `hm-nix-direnv.sh` (direnv sources `lib/*.sh` in glob order). A bare
+  `nix develop` bypasses it; use `mbx build` there. `mbx doctor` warns the
+  shim isn't installed because it only knows about `mbx setup`; ignore it.
 - **Noctalia is v5: TOML config, not JSON settings.** `programs.noctalia.settings`
   is rendered to `~/.config/noctalia/config.toml` and validated at build time by
   `noctalia config validate` (so a bad key fails the build, not the session).
@@ -216,12 +235,17 @@ noctalia.nix` receives it as a module arg and wires
 - **Idle is noctalia's job now, not hypridle.** `[idle.behavior.lock]` and
   `[idle.behavior.screen-off]` in the noctalia config replace the
   `services.hypridle` block; `my.desktop.hyprland.idle.*` feeds them.
-- **Workspace overview is Hyprspace, pinned pre-0.55.** hyprexpo was deleted
-  from hyprland-plugins upstream (`3aa21f2`, "drop unmaintained plugins") and
-  is not in nixpkgs. `inputs.hyprspace` is pinned at `12ddde0` — the last rev
-  before the Hyprland 0.55 port — because plugins are ABI-locked to the
-  compositor and ours is v0.54.2. Bump both together, or the plugin fails to
-  compile against missing headers. Dispatcher is `overview:toggle`; options
+- **Hyprland comes from nixpkgs, not the Hyprland flake.** `pkgs.hyprland` is
+  on cache.nixos.org, so neither the NixOS module nor the home module sets
+  `package`. Plugins must be compiled against the same Hyprland, so
+  `cfg.plugins` should come from `pkgs.hyprlandPlugins`.
+- **Workspace overview is Hyprspace, built from a pinned source input.**
+  hyprexpo was dropped upstream. nixpkgs' `hyprlandPlugins.hyprspace` lags
+  and fails to compile against current Hyprland, so `inputs.hyprspace`
+  (`flake = false`) overrides its `src`. Pin it to the commit Hyprspace's
+  `hyprpm.toml` lists for nixpkgs' Hyprland minor; Hyprspace master tracks
+  Hyprland git and breaks against releases. When a nixpkgs bump moves
+  Hyprland to a new minor, re-pin. Dispatcher is `overview:toggle`; options
   live under `plugin:overview:*`.
 - **Hyprland on NVIDIA needs extra env vars.** If `sys.nvidia.enable = true`
   is combined with `sys.desktop.hyprland.enable = true`, the consumer should

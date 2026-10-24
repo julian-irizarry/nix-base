@@ -100,6 +100,7 @@
       clang-tools
       gopls
       lua-language-server
+      nil
       nixd
       pyright
       rust-analyzer

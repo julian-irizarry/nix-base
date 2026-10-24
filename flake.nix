@@ -222,6 +222,32 @@
           homeModule
           ;
       };
+
+      # Catches Hyprland config breakage (renamed dispatchers, options) at
+      # build time instead of at login. The verifier doesn't load plugins, so
+      # namespaced plugin dispatchers ("overview:toggle") are ignored.
+      hyprlandConfigCheck =
+        system:
+        let
+          hm = smokeConfigs.${system};
+          conf = hm.config.xdg.configFile."hypr/hyprland.conf".source;
+        in
+        hm.pkgs.runCommand "hyprland-config-check" { nativeBuildInputs = [ hm.pkgs.hyprland ]; } ''
+          export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR
+          Hyprland --verify-config -c ${conf} > log 2>&1 || true
+          if ! grep -q "Config parsing result" log; then
+            cat log
+            exit 1
+          fi
+          errors=$(sed -n '/Config parsing result/,$p' log \
+            | grep "Config error" \
+            | grep -v 'requested "[^"]*:[^"]*" does not exist' || true)
+          if [ -n "$errors" ]; then
+            echo "$errors"
+            exit 1
+          fi
+          touch $out
+        '';
     in
     {
       homeModules.default = homeModule;
@@ -242,6 +268,7 @@
           nixos-determinate = nixosSmokeConfigDeterminate.config.system.build.toplevel;
           nixos-hibernate = nixosSmokeConfigHibernate.config.system.build.toplevel;
           nixos-vm = nixosVmTest;
+          hyprland-config = hyprlandConfigCheck system;
         }
       );
     };

@@ -208,6 +208,26 @@
         "type": "github"
       }
     },
+    "mr-boxington": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792800535,
+        "narHash": "sha256-PMYef+EW0zoczOuNEZ6E8tfS77+t+HbfN+ZtfyVZMrw=",
+        "owner": "jdx",
+        "repo": "mr-boxington",
+        "rev": "c0e66025d5fc2f28e5c6802b5539af91123330e7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jdx",
+        "repo": "mr-boxington",
+        "type": "github"
+      }
+    },
     "nix": {
       "inputs": {
         "bdwgc": "bdwgc",
@@ -411,6 +431,7 @@
         "disko": "disko",
         "home-manager": "home-manager",
         "hyprspace": "hyprspace",
+        "mr-boxington": "mr-boxington",
         "nix-index-database": "nix-index-database",
         "nixGL": "nixGL",
         "nixpkgs": "nixpkgs_3",

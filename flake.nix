@@ -45,6 +45,11 @@
       url = "github:KZDKM/Hyprspace/96a3b958a05a8942d26a5ec510f60217d63a7dce";
       flake = false;
     };
+    # mbx: shared rustc output cache and pruned target/ dirs across checkouts.
+    mr-boxington = {
+      url = "github:jdx/mr-boxington";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -218,6 +218,11 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   `hm-nix-direnv.sh` (direnv sources `lib/*.sh` in glob order). A bare
   `nix develop` bypasses it; use `mbx build` there. `mbx doctor` warns the
   shim isn't installed because it only knows about `mbx setup`; ignore it.
+- **Claude Code mods live in `home/cli/claude/mods/`.** Every folder there is
+  linked read-only to `~/.claude/skills/<name>`, which Claude Code loads in
+  every session as `<name>@skills-dir`. Mods written with the plugin-authoring
+  skill land in `~/.claude/dev-mods/<session-id>/` and only load in that
+  session; copy them here (without `.claude-plugin/types/`) to keep them.
 - **herdr is patched, so it builds from source.** `home/cli/herdr/` applies
   `tab-colors.patch` to `pkgs.herdr` (active tab in `selection_bg`/`text`
   with Powerline caps, inactive tabs in `subtext0`, tinted process icons from

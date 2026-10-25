@@ -1,0 +1,5 @@
+{
+  "name": "code-cards",
+  "version": "0.1.0",
+  "description": "Draws fenced code in replies as outlined cards with the language and a copy icon on the border."
+}

@@ -1,0 +1,6 @@
+{
+  "name": "context-band",
+  "version": "0.1.0",
+  "description": "Muted context-window fill, right-aligned on the spinner and turn-duration lines.",
+  "types": "./types/index.d.ts"
+}

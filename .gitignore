@@ -29,3 +29,6 @@ result-*
 
 # Claude
 docs/
+
+# Claude Code regenerates mod type stubs for tsc
+home/cli/claude/mods/*/.claude-plugin/types/

@@ -231,7 +231,12 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   because upstream tests assert the stock colors. When a nixpkgs bump moves
   herdr and the patch stops applying, regenerate it against the new source.
   herdr's `config.toml` and plugins are not home-manager managed; its settings
-  UI writes to the config.
+  UI writes to the config. On Linux the default session's server runs as the
+  `herdr` user service (`OOMPolicy=continue`, `ExitType=cgroup` for live
+  handoff, `X-SwitchMethod=keep-old` so a switch doesn't kill panes) instead
+  of inside the cgroup of the terminal that launched it. `MemoryHigh=60%` /
+  `MemoryMax=70%` / `MemorySwapMax=4G` cover every pane process, so a
+  runaway build or LSP is OOM-killed inside herdr rather than on the desktop.
 - **wezterm hands tab/pane/workspace keys to herdr; kitty keeps its own.**
   `home/terminal/wezterm/keymaps.lua` maps them to `DisableDefaultAssignment`
   so they reach herdr, and `wezterm.nix` sets `enable_kitty_keyboard` (needed

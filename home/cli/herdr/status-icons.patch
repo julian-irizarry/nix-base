@@ -1,0 +1,1093 @@
+diff --git a/docs/next/website/src/content/docs/configuration.mdx b/docs/next/website/src/content/docs/configuration.mdx
+index 874fe56c..591e5d4a 100644
+--- a/docs/next/website/src/content/docs/configuration.mdx
++++ b/docs/next/website/src/content/docs/configuration.mdx
+@@ -359,6 +359,23 @@ status_indicators = "symbols"
+ 
+ The symbols are static, so this option does not enable spinner animation.
+ 
++Override individual states under `[ui.status_icons]`. Unset states keep the `status_indicators` glyph and the theme's state color:
++
++```toml
++[ui.status_icons]
++working = { type = "spinner", color = "#ffb473" }
++done = { type = "symbol", icon = "✓", color = "#a6e3a1" }
++```
++
++Keys are `blocked`, `working`, `done`, `idle`, and `unknown`. Each entry is a table:
++
++- `type` — `"symbol"` (default) or `"spinner"`.
++- `icon` — the glyph for `symbol`, exactly one terminal cell wide. Required for `symbol`.
++- `frames` — the glyphs a `spinner` steps through, each one cell wide. Defaults to a braille spinner.
++- `color` — `#RGB` or `#RRGGBB` for the icon. Defaults to the theme's color for that state.
++
++Spinners animate in the client only while one is visible. Every spinner steps together each 100 ms, and only the changed cells are repainted. `herdr config check` reports an entry with a missing or wrong-width icon, an empty or wrong-width frame, or a malformed color, and that state falls back to its preset glyph and theme color. Overrides apply wherever status icons appear, including the mobile layout. Agent toasts use them too: a needs-attention toast shows the `blocked` icon and a finished toast the `done` icon, while unset states keep the stock toast dot. Overrides color the icon only; style the `state_text` sidebar token separately.
++
+ ### Sidebar row layouts
+ 
+ The expanded desktop sidebar renders each inner array in `rows` as one line. These are the complete default layouts:
+diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
+index f06507c1..790da753 100644
+--- a/docs/next/website/src/data/config-reference.json
++++ b/docs/next/website/src/data/config-reference.json
+@@ -1060,6 +1060,146 @@
+             "symbols"
+           ]
+         },
++        {
++          "key": "ui.status_icons.blocked.type",
++          "type": "enum",
++          "default": "\"symbol\"",
++          "description": "Icon kind for blocked agents: a fixed glyph or an animated spinner.",
++          "values": [
++            "symbol",
++            "spinner"
++          ]
++        },
++        {
++          "key": "ui.status_icons.blocked.icon",
++          "type": "string",
++          "default": "unset",
++          "description": "Glyph for a blocked symbol icon, exactly one terminal cell wide. Required when type is symbol."
++        },
++        {
++          "key": "ui.status_icons.blocked.frames",
++          "type": "list of strings",
++          "default": "braille spinner",
++          "description": "Frames a blocked spinner steps through every 100 ms, each one terminal cell wide."
++        },
++        {
++          "key": "ui.status_icons.blocked.color",
++          "type": "color",
++          "default": "theme state color",
++          "description": "Icon color for blocked agents as #RGB or #RRGGBB."
++        },
++        {
++          "key": "ui.status_icons.working.type",
++          "type": "enum",
++          "default": "\"symbol\"",
++          "description": "Icon kind for working agents: a fixed glyph or an animated spinner.",
++          "values": [
++            "symbol",
++            "spinner"
++          ]
++        },
++        {
++          "key": "ui.status_icons.working.icon",
++          "type": "string",
++          "default": "unset",
++          "description": "Glyph for a working symbol icon, exactly one terminal cell wide. Required when type is symbol."
++        },
++        {
++          "key": "ui.status_icons.working.frames",
++          "type": "list of strings",
++          "default": "braille spinner",
++          "description": "Frames a working spinner steps through every 100 ms, each one terminal cell wide."
++        },
++        {
++          "key": "ui.status_icons.working.color",
++          "type": "color",
++          "default": "theme state color",
++          "description": "Icon color for working agents as #RGB or #RRGGBB."
++        },
++        {
++          "key": "ui.status_icons.done.type",
++          "type": "enum",
++          "default": "\"symbol\"",
++          "description": "Icon kind for done agents: a fixed glyph or an animated spinner.",
++          "values": [
++            "symbol",
++            "spinner"
++          ]
++        },
++        {
++          "key": "ui.status_icons.done.icon",
++          "type": "string",
++          "default": "unset",
++          "description": "Glyph for a done symbol icon, exactly one terminal cell wide. Required when type is symbol."
++        },
++        {
++          "key": "ui.status_icons.done.frames",
++          "type": "list of strings",
++          "default": "braille spinner",
++          "description": "Frames a done spinner steps through every 100 ms, each one terminal cell wide."
++        },
++        {
++          "key": "ui.status_icons.done.color",
++          "type": "color",
++          "default": "theme state color",
++          "description": "Icon color for done agents as #RGB or #RRGGBB."
++        },
++        {
++          "key": "ui.status_icons.idle.type",
++          "type": "enum",
++          "default": "\"symbol\"",
++          "description": "Icon kind for idle agents: a fixed glyph or an animated spinner.",
++          "values": [
++            "symbol",
++            "spinner"
++          ]
++        },
++        {
++          "key": "ui.status_icons.idle.icon",
++          "type": "string",
++          "default": "unset",
++          "description": "Glyph for a idle symbol icon, exactly one terminal cell wide. Required when type is symbol."
++        },
++        {
++          "key": "ui.status_icons.idle.frames",
++          "type": "list of strings",
++          "default": "braille spinner",
++          "description": "Frames a idle spinner steps through every 100 ms, each one terminal cell wide."
++        },
++        {
++          "key": "ui.status_icons.idle.color",
++          "type": "color",
++          "default": "theme state color",
++          "description": "Icon color for idle agents as #RGB or #RRGGBB."
++        },
++        {
++          "key": "ui.status_icons.unknown.type",
++          "type": "enum",
++          "default": "\"symbol\"",
++          "description": "Icon kind for unknown agents: a fixed glyph or an animated spinner.",
++          "values": [
++            "symbol",
++            "spinner"
++          ]
++        },
++        {
++          "key": "ui.status_icons.unknown.icon",
++          "type": "string",
++          "default": "unset",
++          "description": "Glyph for a unknown symbol icon, exactly one terminal cell wide. Required when type is symbol."
++        },
++        {
++          "key": "ui.status_icons.unknown.frames",
++          "type": "list of strings",
++          "default": "braille spinner",
++          "description": "Frames a unknown spinner steps through every 100 ms, each one terminal cell wide."
++        },
++        {
++          "key": "ui.status_icons.unknown.color",
++          "type": "color",
++          "default": "theme state color",
++          "description": "Icon color for unknown agents as #RGB or #RRGGBB."
++        },
+         {
+           "key": "ui.sidebar.agents.row_gap",
+           "type": "integer",
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index abd72b34..240973e7 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -899,6 +899,7 @@ impl App {
+                 diagnostics.extend(crate::config::window_title_diagnostics(
+                     &config.ui.window_title,
+                 ));
++                diagnostics.extend(config.ui.status_icons.diagnostics());
+ 
+                 self.loaded_host_cursor = config.ui.host_cursor;
+                 self.state.confirm_close = config.ui.confirm_close;
+diff --git a/src/client/mod.rs b/src/client/mod.rs
+index f55db195..1c502896 100644
+--- a/src/client/mod.rs
++++ b/src/client/mod.rs
+@@ -2325,7 +2325,8 @@ async fn run_client_loop(
+                         outcome.repaint |= notification_repaint
+                             | shell.tick_copy_feedback(now)
+                             | shell.tick_workspace_highlight(now)
+-                            | shell.tick_endpoint_error(now);
++                            | shell.tick_endpoint_error(now)
++                            | shell.tick_spinner(now);
+                         let frame = outcome
+                             .repaint
+                             .then(|| shell.compose(state.reported_size.0, state.reported_size.1))
+diff --git a/src/client/shell.rs b/src/client/shell.rs
+index 2d180443..ef6212f3 100644
+--- a/src/client/shell.rs
++++ b/src/client/shell.rs
+@@ -175,7 +175,7 @@ fn pane_surface_topology_signature(surface: &PaneSurfaceFrame) -> u64 {
+     hash
+ }
+ 
+-fn status_icon(
++fn preset_status_icon(
+     status: crate::api::schema::AgentStatus,
+     style: crate::config::StatusIndicatorStyle,
+ ) -> &'static str {
+@@ -196,8 +196,161 @@ fn status_icon(
+     }
+ }
+ 
++/// Local patch: `[ui.status_icons]` resolved once per config load, so a render
++/// only indexes it. Invalid entries are dropped here (config check reports them).
++#[derive(Default)]
++pub(super) struct StatusIcons([Option<StatusIcon>; 5]);
++
++pub(super) struct StatusIcon {
++    glyph: StatusIconGlyph,
++    color: Option<ratatui::style::Color>,
++}
++
++enum StatusIconGlyph {
++    Symbol(String),
++    Spinner(Vec<String>),
++}
++
++impl StatusIcons {
++    fn slot(status: crate::api::schema::AgentStatus) -> usize {
++        use crate::api::schema::AgentStatus;
++        match status {
++            AgentStatus::Blocked => 0,
++            AgentStatus::Working => 1,
++            AgentStatus::Done => 2,
++            AgentStatus::Idle => 3,
++            AgentStatus::Unknown => 4,
++        }
++    }
++
++    pub(super) fn from_config(config: &crate::config::StatusIconsConfig) -> Self {
++        let resolve = |entry: &Option<crate::config::StatusIconConfig>| {
++            let entry = entry.as_ref().filter(|entry| entry.problem().is_none())?;
++            let glyph = match entry.kind {
++                crate::config::StatusIconKind::Symbol => {
++                    StatusIconGlyph::Symbol(entry.icon.clone()?)
++                }
++                crate::config::StatusIconKind::Spinner => {
++                    StatusIconGlyph::Spinner(entry.frames.clone().unwrap_or_else(|| {
++                        crate::config::DEFAULT_SPINNER_FRAMES
++                            .map(str::to_owned)
++                            .to_vec()
++                    }))
++                }
++            };
++            let color = entry
++                .color
++                .as_deref()
++                .and_then(crate::config::SidebarTokenColor::parse)
++                .map(crate::config::SidebarTokenColor::ratatui);
++            Some(StatusIcon { glyph, color })
++        };
++        Self([
++            resolve(&config.blocked),
++            resolve(&config.working),
++            resolve(&config.done),
++            resolve(&config.idle),
++            resolve(&config.unknown),
++        ])
++    }
++
++    fn get(&self, status: crate::api::schema::AgentStatus) -> Option<&StatusIcon> {
++        self.0[Self::slot(status)].as_ref()
++    }
++}
++
++impl ClientShellConfig {
++    /// Local patch: whether `[ui.status_icons]` sets this state.
++    fn has_status_icon_override(&self, status: crate::api::schema::AgentStatus) -> bool {
++        self.status_icons.get(status).is_some()
++    }
++
++    /// Local patch: the `[ui.status_icons]` glyph, else the preset's.
++    fn status_icon(&self, status: crate::api::schema::AgentStatus) -> &str {
++        match self.status_icons.get(status).map(|icon| &icon.glyph) {
++            Some(StatusIconGlyph::Symbol(icon)) => icon,
++            Some(StatusIconGlyph::Spinner(frames)) => spinner::draw(frames),
++            None => preset_status_icon(status, self.status_indicators),
++        }
++    }
++
++    /// Local patch: agent toasts use the `[ui.status_icons]` icon for their state
++    /// (needs attention is blocked, finished is done) when one is set, and the
++    /// stock dot otherwise.
++    fn notification_marker(&self, kind: SemanticNotificationKind) -> (&str, ratatui::style::Color) {
++        use crate::api::schema::AgentStatus;
++        let status = match kind {
++            SemanticNotificationKind::NeedsAttention => Some(AgentStatus::Blocked),
++            SemanticNotificationKind::Finished => Some(AgentStatus::Done),
++            SemanticNotificationKind::UpdateInstalled | SemanticNotificationKind::Custom => None,
++        };
++        match status.filter(|status| self.has_status_icon_override(*status)) {
++            Some(status) => (self.status_icon(status), self.status_icon_color(status)),
++            None => notifications::default_notification_marker(kind, &self.palette),
++        }
++    }
++
++    /// Local patch: the `[ui.status_icons]` color, else the theme's state color.
++    fn status_icon_color(&self, status: crate::api::schema::AgentStatus) -> ratatui::style::Color {
++        self.status_icons
++            .get(status)
++            .and_then(|icon| icon.color)
++            .unwrap_or_else(|| status_color(status, &self.palette))
++    }
++}
++
++/// Local patch: spinner for `[ui.status_icons]` entries with `type = "spinner"`.
++/// Animated by the client alone: each compose pins one frame index from the
++/// clock, and the client loop repaints only while the last composed frame drew
++/// a spinner and the clock has moved on. Nothing crosses the server protocol,
++/// and the blit encoder diffs frames, so a tick writes just the changed icon
++/// cells. Process-wide atomics rather than thread-locals because the client
++/// loop is an async task that may hop threads.
++pub(crate) mod spinner {
++    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
++    use std::sync::OnceLock;
++    use std::time::{Duration, Instant};
++
++    const INTERVAL: Duration = Duration::from_millis(100);
++
++    static EPOCH: OnceLock<Instant> = OnceLock::new();
++    static FRAME: AtomicU64 = AtomicU64::new(0);
++    static DRAWN: AtomicBool = AtomicBool::new(false);
++
++    fn index_at(now: Instant) -> u64 {
++        let epoch = *EPOCH.get_or_init(|| now);
++        (now.saturating_duration_since(epoch).as_millis() / INTERVAL.as_millis()) as u64
++    }
++
++    /// Start a compose. Every spinner drawn until the next call shows this frame.
++    pub(crate) fn begin(now: Instant) {
++        FRAME.store(index_at(now), Ordering::Relaxed);
++        DRAWN.store(false, Ordering::Relaxed);
++    }
++
++    pub(super) fn draw(frames: &[String]) -> &str {
++        DRAWN.store(true, Ordering::Relaxed);
++        &frames[(FRAME.load(Ordering::Relaxed) % frames.len() as u64) as usize]
++    }
++
++    /// Whether the last compose drew a spinner that is now showing a stale frame.
++    pub(crate) fn due(now: Instant) -> bool {
++        DRAWN.load(Ordering::Relaxed) && index_at(now) != FRAME.load(Ordering::Relaxed)
++    }
++
++    /// Time until the next frame while a spinner is on screen.
++    pub(crate) fn next_frame_in(now: Instant) -> Option<Duration> {
++        if !DRAWN.load(Ordering::Relaxed) {
++            return None;
++        }
++        let next = (FRAME.load(Ordering::Relaxed) + 1) as u32;
++        let epoch = *EPOCH.get_or_init(|| now);
++        Some((epoch + INTERVAL * next).saturating_duration_since(now))
++    }
++}
++
+ fn status_dot(status: crate::api::schema::AgentStatus) -> &'static str {
+-    status_icon(status, crate::config::StatusIndicatorStyle::Dots)
++    preset_status_icon(status, crate::config::StatusIndicatorStyle::Dots)
+ }
+ 
+ fn status_priority(status: crate::api::schema::AgentStatus) -> u8 {
+diff --git a/src/client/shell/agent_sidebar.rs b/src/client/shell/agent_sidebar.rs
+index e43ab8cc..b97e1dab 100644
+--- a/src/client/shell/agent_sidebar.rs
++++ b/src/client/shell/agent_sidebar.rs
+@@ -342,8 +342,8 @@ pub(super) fn render_agent_row(
+     let status_style = Style::default().fg(status_color(row.status, palette));
+     let secondary = Style::default().fg(palette.overlay0);
+     let icon = (
+-        status_icon(row.status, config.status_indicators),
+-        Style::default().fg(status_color(row.status, palette)),
++        config.status_icon(row.status),
++        Style::default().fg(config.status_icon_color(row.status)),
+     );
+     let rows = if row.rows.is_empty() {
+         vec![vec![crate::ui::ResolvedToken {
+diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
+index eaa540d4..7f72593e 100644
+--- a/src/client/shell/composition.rs
++++ b/src/client/shell/composition.rs
+@@ -152,8 +152,11 @@ impl ClientShellState {
+         cols: u16,
+         rows: u16,
+     ) -> Option<crate::client::frame_output::ComposedFrame> {
+-        self.last_composed_at = Some(std::time::Instant::now());
++        let now = std::time::Instant::now();
++        self.last_composed_at = Some(now);
+         self.selection_repaint_deadline = None;
++        // Local patch: pin this frame's spinner glyph, see `spinner`.
++        super::spinner::begin(now);
+         if self.last_composed_size != Some((cols, rows)) && self.mode == ClientShellMode::Navigate {
+             self.reveal_navigation_workspace = true;
+             self.reveal_mobile_workspace = true;
+@@ -517,6 +520,7 @@ impl ClientShellState {
+                         notification,
+                         self.config.toast_position,
+                         u16::from(has_config_diagnostic) + lifecycle_offset,
++                        self.config.notification_marker(notification.event.kind),
+                         &self.config.palette,
+                     )
+                 } else {
+@@ -524,6 +528,7 @@ impl ClientShellState {
+                         &mut composed,
+                         Rect::new(0, 0, cols, rows),
+                         notification,
++                        self.config.notification_marker(notification.event.kind),
+                         has_config_diagnostic || lifecycle_offset > 0,
+                         &self.config.palette,
+                     )
+diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
+index 04a3ddb5..e0094557 100644
+--- a/src/client/shell/config.rs
++++ b/src/client/shell/config.rs
+@@ -125,6 +125,7 @@ impl ClientShellConfig {
+             agents: config.ui.sidebar.agents.clone(),
+             agent_panel_sort: config.ui.agent_panel_sort,
+             status_indicators: config.ui.status_indicators,
++            status_icons: super::StatusIcons::from_config(&config.ui.status_icons),
+             sound_enabled: config.ui.sound.enabled,
+             toast_delivery: config.ui.toast.delivery,
+             toast_delay_seconds: config.ui.toast.delay_seconds,
+@@ -352,6 +353,7 @@ impl ClientShellConfig {
+                 self.agents = ui.sidebar.agents.clone();
+                 self.agent_panel_sort = ui.agent_panel_sort;
+                 self.status_indicators = ui.status_indicators;
++                self.status_icons = super::StatusIcons::from_config(&ui.status_icons);
+                 self.sound_enabled = ui.sound.enabled;
+                 self.toast_delivery = ui.toast.delivery;
+                 self.toast_delay_seconds = ui.toast.delay_seconds;
+diff --git a/src/client/shell/endpoint_agents.rs b/src/client/shell/endpoint_agents.rs
+index b56b41fa..b980bce4 100644
+--- a/src/client/shell/endpoint_agents.rs
++++ b/src/client/shell/endpoint_agents.rs
+@@ -21,15 +21,12 @@ pub(super) fn render_collapsed(
+             rect.x,
+             rect.y,
+             rect.width,
+-            &format!(
+-                "{initial}{}",
+-                status_icon(row.agent.status, config.status_indicators)
+-            ),
++            &format!("{initial}{}", config.status_icon(row.agent.status)),
+             Style::default()
+                 .fg(if row.stale {
+                     config.palette.overlay0
+                 } else {
+-                    status_color(row.agent.status, &config.palette)
++                    config.status_icon_color(row.agent.status)
+                 })
+                 .add_modifier(if row.stale {
+                     Modifier::DIM
+diff --git a/src/client/shell/endpoint_notices.rs b/src/client/shell/endpoint_notices.rs
+index e796d2c5..4a78aec5 100644
+--- a/src/client/shell/endpoint_notices.rs
++++ b/src/client/shell/endpoint_notices.rs
+@@ -13,7 +13,7 @@ pub(super) fn render_mobile_banner(
+         area,
+         &notice.title,
+         Some(&notice.body),
+-        palette.red,
++        ("●", palette.red),
+         offset_for_warning,
+         palette,
+     )
+@@ -67,14 +67,17 @@ pub(super) fn render_notice(
+         &notice.body,
+         crate::config::ToastHerdrPosition::TopRight,
+         top_offset,
+-        match notice.key.kind {
+-            ClientEndpointNoticeKind::Unsupported | ClientEndpointNoticeKind::Rejected => {
+-                palette.red
+-            }
+-            ClientEndpointNoticeKind::Timeout | ClientEndpointNoticeKind::Unavailable => {
+-                palette.yellow
+-            }
+-        },
++        (
++            "●",
++            match notice.key.kind {
++                ClientEndpointNoticeKind::Unsupported | ClientEndpointNoticeKind::Rejected => {
++                    palette.red
++                }
++                ClientEndpointNoticeKind::Timeout | ClientEndpointNoticeKind::Unavailable => {
++                    palette.yellow
++                }
++            },
++        ),
+         palette,
+     )
+ }
+diff --git a/src/client/shell/endpoint_sidebar.rs b/src/client/shell/endpoint_sidebar.rs
+index 96982487..f2c800a3 100644
+--- a/src/client/shell/endpoint_sidebar.rs
++++ b/src/client/shell/endpoint_sidebar.rs
+@@ -177,12 +177,12 @@ pub(super) fn render_collapsed(
+                 rect.x.saturating_add(number_width),
+                 rect.y,
+                 rect.width.saturating_sub(number_width),
+-                status_icon(workspace.agent_status, config.status_indicators),
++                config.status_icon(workspace.agent_status),
+                 Style::default()
+                     .fg(if stale {
+                         palette.overlay0
+                     } else {
+-                        status_color(workspace.agent_status, palette)
++                        config.status_icon_color(workspace.agent_status)
+                     })
+                     .add_modifier(dim),
+             );
+@@ -472,7 +472,7 @@ pub(super) fn render_expanded(
+                     buffer,
+                     nested,
+                     status,
+-                    config.status_indicators,
++                    config,
+                     entry,
+                     tokens,
+                     endpoint_active && workspace.focused,
+diff --git a/src/client/shell/mobile.rs b/src/client/shell/mobile.rs
+index f4ae0af0..8a2a5aa9 100644
+--- a/src/client/shell/mobile.rs
++++ b/src/client/shell/mobile.rs
+@@ -107,12 +107,9 @@ fn render_header_status(
+         area.x,
+         area.y,
+         name_width.min(3),
+-        &format!(
+-            " {} ",
+-            status_icon(workspace.agent_status, config.status_indicators)
+-        ),
++        &format!(" {} ", config.status_icon(workspace.agent_status)),
+         Style::default()
+-            .fg(status_color(workspace.agent_status, palette))
++            .fg(config.status_icon_color(workspace.agent_status))
+             .bg(palette.panel_bg),
+     );
+     put_text(
+@@ -193,11 +190,10 @@ fn render_header_button(
+             area.right().saturating_sub(1),
+             area.y,
+             1,
+-            status_icon(
+-                crate::api::schema::AgentStatus::Blocked,
+-                config.status_indicators,
+-            ),
+-            Style::default().fg(palette.red).bg(palette.surface0),
++            config.status_icon(crate::api::schema::AgentStatus::Blocked),
++            Style::default()
++                .fg(config.status_icon_color(crate::api::schema::AgentStatus::Blocked))
++                .bg(palette.surface0),
+         );
+     }
+ }
+@@ -293,11 +289,13 @@ fn render_agent_summary(
+         if count == 0 {
+             continue;
+         }
++        // Local patch: a `[ui.status_icons]` override wins over the dots marks.
+         let symbol = match (config.status_indicators, status) {
++            _ if config.has_status_icon_override(status) => Some(config.status_icon(status)),
+             (crate::config::StatusIndicatorStyle::Dots, AgentStatus::Blocked) => Some("◉"),
+             (crate::config::StatusIndicatorStyle::Dots, AgentStatus::Done) => Some("●"),
+             (crate::config::StatusIndicatorStyle::Dots, _) => None,
+-            _ => Some(status_icon(status, config.status_indicators)),
++            _ => Some(config.status_icon(status)),
+         };
+         let text = symbol.map_or_else(
+             || format!("{count} {label}"),
+@@ -705,12 +703,12 @@ fn mobile_items(
+                     Line::from(vec![
+                         Span::styled("  ", Style::default().bg(background)),
+                         Span::styled(
+-                            status_icon(agent.agent_status, config.status_indicators),
++                            config.status_icon(agent.agent_status).to_owned(),
+                             Style::default()
+                                 .fg(if endpoint.stale() {
+                                     palette.overlay0
+                                 } else {
+-                                    status_color(agent.agent_status, palette)
++                                    config.status_icon_color(agent.agent_status)
+                                 })
+                                 .bg(background)
+                                 .add_modifier(dim),
+@@ -819,7 +817,7 @@ fn mobile_items(
+             let status = if endpoint.stale() {
+                 palette.overlay0
+             } else {
+-                status_color(workspace.agent_status, palette)
++                config.status_icon_color(workspace.agent_status)
+             };
+             let stale_detail = if endpoint.stale() {
+                 format!(" · {}", mobile_endpoint_state(endpoint.status))
+@@ -837,7 +835,7 @@ fn mobile_items(
+                                 .add_modifier(dim),
+                         ),
+                         Span::styled(
+-                            status_icon(workspace.agent_status, config.status_indicators),
++                            config.status_icon(workspace.agent_status).to_owned(),
+                             Style::default().fg(status).bg(background).add_modifier(dim),
+                         ),
+                         Span::styled(" ", Style::default().bg(background)),
+diff --git a/src/client/shell/notifications.rs b/src/client/shell/notifications.rs
+index b8437ea7..08669225 100644
+--- a/src/client/shell/notifications.rs
++++ b/src/client/shell/notifications.rs
+@@ -12,7 +12,7 @@ pub(super) fn render_mobile_notice_banner(
+     area: Rect,
+     title: &str,
+     body: Option<&str>,
+-    dot_color: Color,
++    marker: (&str, Color),
+     offset_for_warning: bool,
+     palette: &Palette,
+ ) -> Rect {
+@@ -31,7 +31,7 @@ pub(super) fn render_mobile_notice_banner(
+     let mut x = rect.x;
+     for (text, style) in [
+         (" ", Style::default().bg(background)),
+-        ("●", Style::default().fg(dot_color).bg(background)),
++        (marker.0, Style::default().fg(marker.1).bg(background)),
+         (" ", Style::default().bg(background)),
+         (
+             title,
+@@ -68,6 +68,7 @@ pub(super) fn render_mobile_notification_banner(
+     buffer: &mut Buffer,
+     area: Rect,
+     notification: &ClientVisibleNotification,
++    marker: (&str, Color),
+     offset_for_warning: bool,
+     palette: &Palette,
+ ) -> Rect {
+@@ -86,19 +87,12 @@ pub(super) fn render_mobile_notification_banner(
+         SemanticNotificationKind::UpdateInstalled => "update ready".to_owned(),
+         SemanticNotificationKind::Custom => event.title.clone(),
+     };
+-    let dot_color = match event.kind {
+-        SemanticNotificationKind::NeedsAttention => palette.red,
+-        SemanticNotificationKind::Finished => palette.blue,
+-        SemanticNotificationKind::UpdateInstalled | SemanticNotificationKind::Custom => {
+-            palette.accent
+-        }
+-    };
+     render_mobile_notice_banner(
+         buffer,
+         area,
+         &title,
+         event.body.as_deref(),
+-        dot_color,
++        marker,
+         offset_for_warning,
+         palette,
+     )
+@@ -111,7 +105,7 @@ pub(super) fn render_notification_card(
+     body: &str,
+     position: crate::config::ToastHerdrPosition,
+     top_offset: u16,
+-    dot_color: Color,
++    marker: (&str, Color),
+     palette: &Palette,
+ ) -> Rect {
+     if area.is_empty() {
+@@ -149,7 +143,7 @@ pub(super) fn render_notification_card(
+     let inner = block.inner(rect);
+     block.render(rect, buffer);
+     Paragraph::new(Line::from(vec![
+-        Span::styled("●", Style::default().fg(dot_color)),
++        Span::styled(marker.0, Style::default().fg(marker.1)),
+         Span::raw(" "),
+         Span::styled(
+             title,
+@@ -183,16 +177,10 @@ pub(super) fn render_visible_notification(
+     notification: &ClientVisibleNotification,
+     default_position: crate::config::ToastHerdrPosition,
+     top_offset: u16,
++    marker: (&str, Color),
+     palette: &Palette,
+ ) -> Rect {
+     let event = &notification.event;
+-    let dot_color = match event.kind {
+-        SemanticNotificationKind::NeedsAttention => palette.red,
+-        SemanticNotificationKind::Finished => palette.blue,
+-        SemanticNotificationKind::UpdateInstalled | SemanticNotificationKind::Custom => {
+-            palette.accent
+-        }
+-    };
+     render_notification_card(
+         buffer,
+         area,
+@@ -200,11 +188,26 @@ pub(super) fn render_visible_notification(
+         event.body.as_deref().unwrap_or_default(),
+         event.position.unwrap_or(default_position),
+         top_offset,
+-        dot_color,
++        marker,
+         palette,
+     )
+ }
+ 
++/// The stock toast marker: a dot in the kind's color.
++pub(super) fn default_notification_marker(
++    kind: SemanticNotificationKind,
++    palette: &Palette,
++) -> (&'static str, Color) {
++    let color = match kind {
++        SemanticNotificationKind::NeedsAttention => palette.red,
++        SemanticNotificationKind::Finished => palette.blue,
++        SemanticNotificationKind::UpdateInstalled | SemanticNotificationKind::Custom => {
++            palette.accent
++        }
++    };
++    ("●", color)
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -239,8 +242,14 @@ mod tests {
+         for cell in &mut buffer.content {
+             cell.set_symbol("X");
+         }
+-        let rect =
+-            render_mobile_notification_banner(&mut buffer, area, &notification, true, &palette);
++        let rect = render_mobile_notification_banner(
++            &mut buffer,
++            area,
++            &notification,
++            default_notification_marker(notification.event.kind, &palette),
++            true,
++            &palette,
++        );
+         assert_eq!(rect, Rect::new(0, 18, 44, 1));
+         let text = buffer
+             .content
+@@ -469,6 +478,7 @@ mod tests {
+                     &notification(),
+                     position,
+                     1,
++                    default_notification_marker(notification().event.kind, &palette),
+                     &palette,
+                 );
+                 assert!(rect.y >= area.y);
+diff --git a/src/client/shell/sidebar.rs b/src/client/shell/sidebar.rs
+index 46c3a1a0..2d5e8aa5 100644
+--- a/src/client/shell/sidebar.rs
++++ b/src/client/shell/sidebar.rs
+@@ -98,8 +98,8 @@ pub(crate) fn render_collapsed_sidebar(
+             rect.x.saturating_add(2),
+             rect.y,
+             rect.width.saturating_sub(2),
+-            status_icon(status, config.status_indicators),
+-            Style::default().fg(status_color(status, palette)),
++            config.status_icon(status),
++            Style::default().fg(config.status_icon_color(status)),
+         );
+         hits.workspaces.push(WorkspaceHit {
+             rect,
+@@ -165,8 +165,8 @@ pub(crate) fn render_collapsed_sidebar(
+             rect.x.saturating_add(2),
+             rect.y,
+             rect.width.saturating_sub(2),
+-            status_icon(agent.agent_status, config.status_indicators),
+-            Style::default().fg(status_color(agent.agent_status, palette)),
++            config.status_icon(agent.agent_status),
++            Style::default().fg(config.status_icon_color(agent.agent_status)),
+         );
+         hits.agents.push((rect, pane_id));
+     }
+@@ -325,7 +325,7 @@ pub(crate) fn render_sidebar(
+             buffer,
+             rect,
+             status,
+-            config.status_indicators,
++            config,
+             entry,
+             rows,
+             workspace.focused,
+@@ -693,7 +693,7 @@ pub(in crate::client::shell) fn render_workspace_rows(
+     buffer: &mut Buffer,
+     area: Rect,
+     status: crate::api::schema::AgentStatus,
+-    indicators: crate::config::StatusIndicatorStyle,
++    config: &ClientShellConfig,
+     entry: &WorkspaceEntry,
+     rows: Vec<Vec<crate::ui::ResolvedToken>>,
+     focused: bool,
+@@ -753,8 +753,8 @@ pub(in crate::client::shell) fn render_workspace_rows(
+         let spans = crate::ui::resolved_token_spans(
+             row,
+             (
+-                status_icon(status, indicators),
+-                Style::default().fg(status_color(status, palette)),
++                config.status_icon(status),
++                Style::default().fg(config.status_icon_color(status)),
+             ),
+             Style::default().fg(status_color(status, palette)),
+             workspace_style,
+diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
+index 5a732920..06b97613 100644
+--- a/src/client/shell/state.rs
++++ b/src/client/shell/state.rs
+@@ -25,6 +25,7 @@ pub(crate) struct ClientShellConfig {
+     pub(super) agents: crate::config::AgentsSidebarConfig,
+     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
+     pub(super) status_indicators: crate::config::StatusIndicatorStyle,
++    pub(super) status_icons: super::StatusIcons,
+     pub(super) sound_enabled: bool,
+     pub(super) toast_delivery: crate::config::ToastDelivery,
+     pub(super) toast_delay_seconds: u64,
+@@ -1880,12 +1881,20 @@ impl ClientShellState {
+ 
+     pub(crate) fn timer_delay(&self, now: std::time::Instant) -> std::time::Duration {
+         let default = std::time::Duration::from_millis(100);
+-        self.selection_autoscroll_deadline
++        let delay = self
++            .selection_autoscroll_deadline
+             .into_iter()
+             .chain(self.selection_repaint_deadline)
+             .min()
+             .map(|deadline| deadline.saturating_duration_since(now).min(default))
+-            .unwrap_or(default)
++            .unwrap_or(default);
++        // Local patch: wake on the spinner's frame boundary so it steps evenly.
++        super::spinner::next_frame_in(now).map_or(delay, |next| delay.min(next))
++    }
++
++    /// Local patch: repaint when an on-screen spinner has a newer frame.
++    pub(crate) fn tick_spinner(&self, now: std::time::Instant) -> bool {
++        super::spinner::due(now)
+     }
+ 
+     pub(crate) fn invalidate_pane_surface(&mut self) {
+diff --git a/src/config.rs b/src/config.rs
+index 925423d9..c540dee7 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -24,13 +24,14 @@ pub use self::{
+     model::{
+         validated_sidebar_bounds, AgentPanelSortConfig, Config, ConfigReloadReport,
+         ConfigReloadStatus, HostCursorModeConfig, NewTerminalCwdConfig, PaneBordersConfig,
+-        ShellModeConfig, SidebarCollapsedModeConfig, StatusIndicatorStyle, TabBarPositionConfig,
+-        ToastClipboardPosition, ToastConfig, ToastDelivery, ToastHerdrPosition,
+-        UpdateChannelConfig, MAX_TOAST_DELAY_SECONDS,
++        ShellModeConfig, SidebarCollapsedModeConfig, StatusIconConfig, StatusIconKind,
++        StatusIconsConfig, StatusIndicatorStyle, TabBarPositionConfig, ToastClipboardPosition,
++        ToastConfig, ToastDelivery, ToastHerdrPosition, UpdateChannelConfig,
++        DEFAULT_SPINNER_FRAMES, MAX_TOAST_DELAY_SECONDS,
+     },
+     sidebar::{
+-        AgentSidebarToken, AgentsSidebarConfig, SidebarConfig, SidebarTokenStyle,
+-        SpaceSidebarToken, SpacesSidebarConfig,
++        AgentSidebarToken, AgentsSidebarConfig, SidebarConfig, SidebarTokenColor,
++        SidebarTokenStyle, SpaceSidebarToken, SpacesSidebarConfig,
+     },
+     sound::SoundConfig,
+     tab_bar::TabBarRightEntryConfig,
+@@ -120,6 +121,7 @@ impl Config {
+             .chain(self.theme.diagnostics())
+             .chain(self.ui.sound.diagnostics())
+             .chain(tab_bar_right_diagnostics(&self.ui.tab_bar_right))
++            .chain(self.ui.status_icons.diagnostics())
+             .chain(window_title_diagnostics(&self.ui.window_title))
+             .chain(self.invalid_sidebar_bounds_diagnostic())
+             .chain(self.invalid_headless_size_diagnostic())
+diff --git a/src/config/model.rs b/src/config/model.rs
+index 6241c60d..8f3c7f8d 100644
+--- a/src/config/model.rs
++++ b/src/config/model.rs
+@@ -125,6 +125,99 @@ impl StatusIndicatorStyle {
+     }
+ }
+ 
++/// Local patch: kind of a `[ui.status_icons]` entry.
++#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(rename_all = "lowercase")]
++pub enum StatusIconKind {
++    /// A fixed glyph from `icon`.
++    #[default]
++    Symbol,
++    /// An animated spinner stepping through `frames`.
++    Spinner,
++}
++
++/// Braille frames used when a spinner entry sets no `frames`.
++pub const DEFAULT_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
++
++/// Local patch: one agent state's icon in `[ui.status_icons]`.
++#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(default)]
++pub struct StatusIconConfig {
++    #[serde(rename = "type")]
++    pub kind: StatusIconKind,
++    /// Glyph for `symbol`, exactly one terminal cell wide.
++    pub icon: Option<String>,
++    /// Frames for `spinner`, each one cell wide. Unset uses `DEFAULT_SPINNER_FRAMES`.
++    pub frames: Option<Vec<String>>,
++    /// `#RGB` or `#RRGGBB`. Unset uses the theme's state color.
++    pub color: Option<String>,
++}
++
++impl StatusIconConfig {
++    fn is_one_cell(value: &str) -> bool {
++        !value.chars().any(char::is_control) && unicode_width::UnicodeWidthStr::width(value) == 1
++    }
++
++    /// Why this entry can't be used, if it can't.
++    pub fn problem(&self) -> Option<String> {
++        match self.kind {
++            StatusIconKind::Symbol => match self.icon.as_deref() {
++                None => return Some("type \"symbol\" needs an icon".into()),
++                Some(icon) if !Self::is_one_cell(icon) => {
++                    return Some(format!("icon {icon:?} must be one terminal cell wide"))
++                }
++                Some(_) => {}
++            },
++            StatusIconKind::Spinner => {
++                if let Some(frames) = &self.frames {
++                    if frames.is_empty() {
++                        return Some("frames must not be empty".into());
++                    }
++                    if let Some(frame) = frames.iter().find(|frame| !Self::is_one_cell(frame)) {
++                        return Some(format!("frame {frame:?} must be one terminal cell wide"));
++                    }
++                }
++            }
++        }
++        self.color
++            .as_deref()
++            .filter(|color| crate::config::sidebar::SidebarTokenColor::parse(color).is_none())
++            .map(|color| format!("color {color:?} must be #RGB or #RRGGBB"))
++    }
++}
++
++/// Local patch: per-state agent status icons layered over `status_indicators`.
++/// Unset or invalid states keep the preset's glyph and the theme's color.
++#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(default)]
++pub struct StatusIconsConfig {
++    pub blocked: Option<StatusIconConfig>,
++    pub working: Option<StatusIconConfig>,
++    pub done: Option<StatusIconConfig>,
++    pub idle: Option<StatusIconConfig>,
++    pub unknown: Option<StatusIconConfig>,
++}
++
++impl StatusIconsConfig {
++    pub fn diagnostics(&self) -> Vec<String> {
++        [
++            ("blocked", &self.blocked),
++            ("working", &self.working),
++            ("done", &self.done),
++            ("idle", &self.idle),
++            ("unknown", &self.unknown),
++        ]
++        .into_iter()
++        .filter_map(|(state, entry)| {
++            let problem = entry.as_ref()?.problem()?;
++            Some(format!(
++                "ui.status_icons.{state}: {problem}; using the status_indicators icon"
++            ))
++        })
++        .collect()
++    }
++}
++
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+ #[serde(rename_all = "lowercase")]
+ pub enum HostCursorModeConfig {
+@@ -1000,6 +1093,8 @@ pub struct UiConfig {
+     _legacy_agent_panel_scope: Option<LegacyAgentPanelScopeConfig>,
+     /// Agent status indicator style. Saved values are "dots" or "symbols". Default: "dots".
+     pub status_indicators: StatusIndicatorStyle,
++    /// Per-state icon overrides on top of `status_indicators`.
++    pub status_icons: StatusIconsConfig,
+     /// Expanded sidebar row composition.
+     pub sidebar: SidebarConfig,
+     /// Accent color for highlights, borders, and navigation UI.
+@@ -1228,6 +1323,7 @@ impl Default for UiConfig {
+             agent_panel_sort: AgentPanelSortConfig::Spaces,
+             _legacy_agent_panel_scope: None,
+             status_indicators: StatusIndicatorStyle::Dots,
++            status_icons: StatusIconsConfig::default(),
+             sidebar: SidebarConfig::default(),
+             accent: "cyan".into(),
+             toast: ToastConfig::default(),
+diff --git a/src/config/sidebar.rs b/src/config/sidebar.rs
+index 9a4cb5e0..c609981a 100644
+--- a/src/config/sidebar.rs
++++ b/src/config/sidebar.rs
+@@ -50,33 +50,14 @@ impl SidebarTokenColor {
+     pub(crate) fn ratatui(self) -> ratatui::style::Color {
+         ratatui::style::Color::Rgb(self.r, self.g, self.b)
+     }
+-}
+-
+-impl Serialize for SidebarTokenColor {
+-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+-    where
+-        S: serde::Serializer,
+-    {
+-        serializer.serialize_str(&format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b))
+-    }
+-}
+ 
+-impl<'de> Deserialize<'de> for SidebarTokenColor {
+-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+-    where
+-        D: serde::Deserializer<'de>,
+-    {
+-        let value = String::deserialize(deserializer)?;
++    /// Strict `#RGB` or `#RRGGBB`.
++    pub(crate) fn parse(value: &str) -> Option<Self> {
+         let hex = value.strip_prefix('#').filter(|hex| {
+             hex.is_ascii()
+                 && matches!(hex.len(), 3 | 6)
+                 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+-        });
+-        let Some(hex) = hex else {
+-            return Err(serde::de::Error::custom(
+-                "sidebar token fg must be #RGB or #RRGGBB",
+-            ));
+-        };
++        })?;
+         let (r, g, b) = if hex.len() == 3 {
+             let mut digits = hex
+                 .bytes()
+@@ -93,7 +74,27 @@ impl<'de> Deserialize<'de> for SidebarTokenColor {
+                 u8::from_str_radix(&hex[4..6], 16).expect("validated hex digits"),
+             )
+         };
+-        Ok(Self { r, g, b })
++        Some(Self { r, g, b })
++    }
++}
++
++impl Serialize for SidebarTokenColor {
++    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
++    where
++        S: serde::Serializer,
++    {
++        serializer.serialize_str(&format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b))
++    }
++}
++
++impl<'de> Deserialize<'de> for SidebarTokenColor {
++    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
++    where
++        D: serde::Deserializer<'de>,
++    {
++        let value = String::deserialize(deserializer)?;
++        Self::parse(&value)
++            .ok_or_else(|| serde::de::Error::custom("sidebar token fg must be #RGB or #RRGGBB"))
+     }
+ }
+ 
+diff --git a/src/main.rs b/src/main.rs
+index c83d4cb1..d7593e9e 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -342,6 +342,14 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+ # distinct static glyphs for blocked, working, done, idle, and unknown states.
+ # status_indicators = "dots"
+ 
++# Per-state icon overrides on top of status_indicators, keyed blocked, working,
++# done, idle, unknown. type is "symbol" (needs a one-cell icon) or "spinner"
++# (optional one-cell frames, braille by default). color is #RGB or #RRGGBB and
++# defaults to the theme's state color. Unset states keep the preset.
++# [ui.status_icons]
++# working = { type = "spinner" }
++# done = { type = "symbol", icon = "✓", color = "#a6e3a1" }
++
+ # Accent color for highlights, borders, and navigation UI.
+ # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
+ # accent = "cyan"

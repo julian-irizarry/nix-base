@@ -1,0 +1,56 @@
+diff --git a/docs/next/website/src/content/docs/cli-reference.mdx b/docs/next/website/src/content/docs/cli-reference.mdx
+index d5ee1423..17e18402 100644
+--- a/docs/next/website/src/content/docs/cli-reference.mdx
++++ b/docs/next/website/src/content/docs/cli-reference.mdx
+@@ -200,7 +200,7 @@ A tab is another terminal layout inside a workspace. Without `--workspace`, `tab
+ 
+ With `ui.confirm_close` enabled, the TUI asks for confirmation before closing a workspace's last tab or its only pane from a keybinding or the tab/pane menu. Ordinary pane closes and CLI/API closes remain immediate.
+ 
+-Workspace and tab creation, and pane splitting, leave focus unchanged by default. `--focus` selects the new layout; `--no-focus` states the default explicitly. Without `--cwd`, new terminals follow the configured `terminal.new_cwd` policy, which follows the source pane or workspace by default. Each `--env KEY=VALUE` adds or replaces that variable in the new root shell.
++Workspace and tab creation, and pane splitting, leave focus unchanged by default. `--focus` selects the new layout; `--no-focus` states the default explicitly. Without `--cwd`, new terminals follow the configured `terminal.new_cwd` policy, which follows the source pane or workspace by default; new workspaces use `terminal.new_workspace_cwd` instead when it is set. Each `--env KEY=VALUE` adds or replaces that variable in the new root shell.
+ 
+ ## Panes
+ 
+diff --git a/docs/next/website/src/content/docs/configuration.mdx b/docs/next/website/src/content/docs/configuration.mdx
+index 591e5d4a..6df90811 100644
+--- a/docs/next/website/src/content/docs/configuration.mdx
++++ b/docs/next/website/src/content/docs/configuration.mdx
+@@ -93,6 +93,15 @@ new_cwd = "follow"
+ 
+ `new_cwd = "follow"` keeps the default behavior and inherits the source pane or workspace. When there is no source workspace, Herdr starts in `$HOME`. Use `"home"` to always start in `$HOME`, `"current"` to use Herdr's process directory, or a fixed path such as `"~/Projects"`. Explicit `--cwd` values from the CLI or socket API still take precedence.
+ 
++Set a separate working directory policy for new workspaces only:
++
++```toml
++[terminal]
++new_workspace_cwd = "~/Projects"
++```
++
++`new_workspace_cwd` accepts the same values as `new_cwd` and applies to workspaces created from the sidebar, the `new_workspace` keybinding, `herdr workspace create` without `--cwd`, and the default workspace Herdr opens when none exist. New panes and tabs keep following `new_cwd`. When unset, workspaces use `new_cwd`. Worktree workspaces always start in their worktree checkout, a server auto-started by `herdr` opens its first workspace in the directory it was launched from, and explicit `--cwd` values still take precedence.
++
+ ## Worktrees
+ 
+ Set the root directory Herdr uses for Git worktree checkouts created from the sidebar:
+diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
+index 790da753..125fb911 100644
+--- a/docs/next/website/src/data/config-reference.json
++++ b/docs/next/website/src/data/config-reference.json
+@@ -441,6 +441,18 @@
+             "path"
+           ]
+         },
++        {
++          "key": "terminal.new_workspace_cwd",
++          "type": "enum",
++          "default": "unset (uses terminal.new_cwd)",
++          "description": "CWD policy for new workspaces only. Accepts the same values as terminal.new_cwd. Worktree workspaces and explicit --cwd values are unaffected.",
++          "values": [
++            "follow",
++            "home",
++            "current",
++            "path"
++          ]
++        },
+         {
+           "key": "terminal.kitty_graphics",
+           "type": "boolean",

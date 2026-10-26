@@ -1,26 +1,44 @@
 { pkgs, lib, ... }:
 
 let
+  # Patches are an ordered stack, generated from the herdr checkout next to
+  # nix-base (branch jrizzy/local-patches, one commit or merge per file):
+  #   git diff <prev> <next> > home/cli/herdr/<name>.patch
+  # Later patches rework hunks of tab-colors.patch, so apply them in order.
   herdr = pkgs.herdr.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./tab-colors.patch ];
+    patches = (old.patches or [ ]) ++ [
+      # The original personal patch: tab look, navigator restyle, process icon
+      # colors, popups, q/h/l keys, Shift+Enter, new_workspace_cwd. Most of its
+      # behavior is now config, the later patches route it through options.
+      ./tab-colors.patch
+      # `[ui.status_icons]`: per-state icons, animated spinner, icon colors.
+      ./status-icons.patch
+      # Docs for `[terminal] new_workspace_cwd`.
+      ./workspace-cwd.patch
+      # `[ui] hide_prefix_mode_bar` and `[terminal] shift_enter_csi_u`, both
+      # opt-in instead of always on.
+      ./ui-toggles.patch
+      # `[theme.elements]`: named UI slots over the palette (full catalog),
+      # `[ui.tab_bar] active_caps`, and `style`/`padding` on tab_bar_right
+      # entries. Replaces the hardcoded tab, border, popup, navigator and
+      # accent-pill styling; only the process icon colors stay hardcoded.
+      ./theme-elements.patch
+    ];
+    # The full suite passes outside the sandbox except three tests that fail on
+    # stock v0.9.5 here too; skipped to keep rebuilds fast.
     doCheck = false;
   });
 in
 {
-  # Patched to match the wezterm tabline: active tab in `selection_bg` with
-  # Powerline caps, tinted process icons, and `accent = true` pills in
-  # ui.tab_bar_right (stock herdr rejects it). Also unfilled popups (no black
-  # half-cell outside the border), no prefix-mode hint bar, and focused pane
-  # borders in `peach` rather than `accent`, and Shift+Enter as CSI-u for
-  # legacy panes (zsh autosuggest-accept). The Go to navigator highlights like
-  # the active tab, tints icons and takes h/l for workspaces next to j/k rows,
-  # and q closes popups and navigate mode when nothing is taking text. A
-  # `[terminal] new_workspace_cwd` setting gives new workspaces their own
-  # starting directory, so it doesn't move new panes and tabs like `new_cwd`. This rebuilds herdr from source
-  # (Rust + Zig, not on cache.nixos.org); if a nixpkgs bump stops the patch
-  # applying, regenerate it against the new release. Tests are skipped because
-  # upstream asserts the stock tab colors. config.toml and plugins stay
-  # hand-managed: herdr's settings UI writes to the config.
+  # Everything the patches add is opt-in: with no matching config keys herdr
+  # renders and behaves like stock. My look lives in config.toml
+  # ([theme.elements], [ui.status_icons], tab_bar_right styles, ...).
+  #
+  # This rebuilds herdr from source (Rust + Zig, not on cache.nixos.org); if a
+  # nixpkgs bump stops the patches applying, rebase jrizzy/local-patches onto
+  # the new release in the herdr checkout and regenerate the stack.
+  # config.toml and plugins stay hand-managed: herdr's settings UI writes to
+  # the config.
   home.packages = [
     herdr
     # Holds the long-lived shell session behind herdr's prefix+t orchestrator
@@ -35,8 +53,11 @@ in
   # keeps a killed pane process (rust-analyzer, rustc) from stopping the unit.
   # Live handoff starts the new server as a child, then the old one exits, so
   # ExitType=cgroup keeps the unit up until the whole cgroup is gone. keep-old
-  # stops a home-manager switch from restarting the server and killing panes;
-  # the next client to connect hands off to the new binary.
+  # stops a home-manager switch from restarting the server and killing panes.
+  # herdr's live handoff is opt-in and doesn't run for Nix installs, so after
+  # a switch a reattached client runs the new binary against the old server:
+  # client-side changes apply right away, server-side ones need
+  # `herdr server stop` (kills panes; supported agents resume).
   #
   # Every pane process counts against the memory limits, including the
   # rust-analyzer an agent's LSP plugin starts. At MemoryMax the kernel

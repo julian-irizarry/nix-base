@@ -1,0 +1,268 @@
+diff --git a/docs/next/website/src/content/docs/configuration.mdx b/docs/next/website/src/content/docs/configuration.mdx
+index 6df90811..26f19b30 100644
+--- a/docs/next/website/src/content/docs/configuration.mdx
++++ b/docs/next/website/src/content/docs/configuration.mdx
+@@ -102,6 +102,15 @@ new_workspace_cwd = "~/Projects"
+ 
+ `new_workspace_cwd` accepts the same values as `new_cwd` and applies to workspaces created from the sidebar, the `new_workspace` keybinding, `herdr workspace create` without `--cwd`, and the default workspace Herdr opens when none exist. New panes and tabs keep following `new_cwd`. When unset, workspaces use `new_cwd`. Worktree workspaces always start in their worktree checkout, a server auto-started by `herdr` opens its first workspace in the directory it was launched from, and explicit `--cwd` values still take precedence.
+ 
++Panes that have not enabled a keyboard protocol receive Shift+Enter as a bare carriage return, the same as Enter. To send the CSI-u sequence `ESC[13;2u` instead, so a shell can bind Shift+Enter separately (for example zsh `bindkey '^[[13;2u' autosuggest-accept`):
++
++```toml
++[terminal]
++shift_enter_csi_u = true
++```
++
++Panes that negotiate kitty keyboard or modifyOtherKeys keep their own Shift+Enter encoding. The setting applies to the next key after a config reload. In remote sessions, the server's setting is used.
++
+ ## Worktrees
+ 
+ Set the root directory Herdr uses for Git worktree checkouts created from the sidebar:
+@@ -324,6 +333,8 @@ The sidebar is the main Herdr dashboard. Search `ui.` in the [Config reference](
+ 
+ Set `tab_bar_position = "bottom"` under `[ui]` to place the desktop tab row below the terminal panes. Prefix, Navigate, Copy, and Resize mode bars temporarily replace the bottom tab row while active. The default is `"top"`.
+ 
++Set `hide_prefix_mode_bar = true` under `[ui]` to skip the hint bar while prefix mode is active. The next key still runs its prefix action, and `prefix+?` still opens the keybind help. The default is `false`.
++
+ Configure an ordered tmux-style status area at the right edge of the tab row:
+ 
+ ```toml
+diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
+index 125fb911..b0fbd675 100644
+--- a/docs/next/website/src/data/config-reference.json
++++ b/docs/next/website/src/data/config-reference.json
+@@ -458,6 +458,12 @@
+           "type": "boolean",
+           "default": "true",
+           "description": "Render pane images in Kitty graphics-compatible outer terminals. Applications use the standard Kitty graphics protocol through pane terminal output; the external socket pane-overlay API is no longer available. Set false to disable graphics rendering. Restart the server or reattach the client after changing it. In remote sessions, server configuration controls Kitty graphics parsing while local client configuration controls outer-terminal output."
++        },
++        {
++          "key": "terminal.shift_enter_csi_u",
++          "type": "boolean",
++          "default": "false",
++          "description": "Send Shift+Enter as the CSI-u sequence ESC[13;2u to panes that have not enabled a keyboard protocol, instead of a bare carriage return, so shells can bind it separately from Enter. Panes that negotiate kitty keyboard or modifyOtherKeys keep their own encoding. Applies on config reload; the server's setting controls remote sessions."
+         }
+       ]
+     },
+@@ -1017,6 +1023,12 @@
+           "default": "false",
+           "description": "Hide the tab row when the workspace has one tab."
+         },
++        {
++          "key": "ui.hide_prefix_mode_bar",
++          "type": "boolean",
++          "default": "false",
++          "description": "Hide the hint bar while prefix mode is active. The next key still runs the prefix action."
++        },
+         {
+           "key": "ui.tab_bar_position",
+           "type": "enum",
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index 240973e7..a95b2b17 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -394,6 +394,8 @@ impl App {
+     ) -> std::io::Result<Self> {
+         let prefix_keys = config.prefix_keys();
+         crate::kitty_graphics::set_enabled(config.kitty_graphics_enabled());
++        // Local patch: opt-in CSI-u Shift+Enter for legacy panes.
++        crate::pane::set_shift_enter_csi_u(config.terminal.shift_enter_csi_u);
+         let (event_tx, event_rx) = mpsc::channel::<AppEvent>(APP_EVENT_CHANNEL_CAPACITY);
+         let render_notify = Arc::new(Notify::new());
+         let render_dirty = Arc::new(crate::render_signal::RenderSignal::new());
+@@ -1006,6 +1008,8 @@ impl App {
+             self.state.shell_mode = config.terminal.shell_mode;
+             self.state.new_terminal_cwd = config.terminal.new_cwd.clone();
+             self.state.new_workspace_cwd = config.terminal.new_workspace_cwd.clone();
++            // Local patch: applies to the next key sent to every pane.
++            crate::pane::set_shift_enter_csi_u(config.terminal.shift_enter_csi_u);
+         }
+ 
+         if !invalid_section("worktrees") {
+diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
+index 7f72593e..2bebfe4e 100644
+--- a/src/client/shell/composition.rs
++++ b/src/client/shell/composition.rs
+@@ -134,6 +134,8 @@ impl ClientShellState {
+             false,
+             &self.config.keybinds,
+             &self.config.palette,
++            // Local patch: opt-in hiding of the prefix-mode hint bar.
++            self.config.hide_prefix_mode_bar,
+         );
+         if let Some(notice) = &self.visible_endpoint_notice {
+             self.hits.notification_toast = endpoint_notices::render_notice(
+@@ -333,6 +335,8 @@ impl ClientShellState {
+                 snapshot.update_available.is_some(),
+                 &self.config.keybinds,
+                 &self.config.palette,
++                // Local patch: opt-in hiding of the prefix-mode hint bar.
++                self.config.hide_prefix_mode_bar,
+             )
+         };
+         if mode_bar == Some(layout.tab_bar) {
+diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
+index e0094557..c17e4378 100644
+--- a/src/client/shell/config.rs
++++ b/src/client/shell/config.rs
+@@ -121,6 +121,8 @@ impl ClientShellConfig {
+             mobile_width_threshold: config.ui.mobile_width_threshold,
+             tab_bar_position: config.ui.tab_bar_position,
+             hide_tab_bar_when_single_tab: config.ui.hide_tab_bar_when_single_tab,
++            // Local patch: opt-in hiding of the prefix-mode hint bar.
++            hide_prefix_mode_bar: config.ui.hide_prefix_mode_bar,
+             spaces: config.ui.sidebar.spaces.clone(),
+             agents: config.ui.sidebar.agents.clone(),
+             agent_panel_sort: config.ui.agent_panel_sort,
+@@ -349,6 +351,8 @@ impl ClientShellConfig {
+                 self.mobile_width_threshold = ui.mobile_width_threshold;
+                 self.tab_bar_position = ui.tab_bar_position;
+                 self.hide_tab_bar_when_single_tab = ui.hide_tab_bar_when_single_tab;
++                // Local patch: opt-in hiding of the prefix-mode hint bar.
++                self.hide_prefix_mode_bar = ui.hide_prefix_mode_bar;
+                 self.spaces = ui.sidebar.spaces.clone();
+                 self.agents = ui.sidebar.agents.clone();
+                 self.agent_panel_sort = ui.agent_panel_sort;
+diff --git a/src/client/shell/render.rs b/src/client/shell/render.rs
+index a401d0dd..6c2a4603 100644
+--- a/src/client/shell/render.rs
++++ b/src/client/shell/render.rs
+@@ -37,12 +37,12 @@ pub(super) fn render_mode_bar(
+     update_available: bool,
+     keybinds: &LiveKeybindConfig,
+     palette: &Palette,
++    hide_prefix_mode_bar: bool,
+ ) -> Option<Rect> {
+-    // Local patch: no hint bar for prefix mode; the next key still applies.
+-    if (matches!(mode, ClientShellMode::Terminal | ClientShellMode::Prefix)
+-        && endpoint_error.is_none())
+-        || pane_area.is_empty()
+-    {
++    // Local patch: optionally no hint bar for prefix mode; the next key still applies.
++    let hidden_mode = mode == ClientShellMode::Terminal
++        || (hide_prefix_mode_bar && mode == ClientShellMode::Prefix);
++    if (hidden_mode && endpoint_error.is_none()) || pane_area.is_empty() {
+         return None;
+     }
+ 
+diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
+index 06b97613..cfb3dd84 100644
+--- a/src/client/shell/state.rs
++++ b/src/client/shell/state.rs
+@@ -21,6 +21,8 @@ pub(crate) struct ClientShellConfig {
+     pub(super) mobile_width_threshold: u16,
+     pub(super) tab_bar_position: TabBarPositionConfig,
+     pub(super) hide_tab_bar_when_single_tab: bool,
++    // Local patch: opt-in hiding of the prefix-mode hint bar.
++    pub(super) hide_prefix_mode_bar: bool,
+     pub(super) spaces: SpacesSidebarConfig,
+     pub(super) agents: crate::config::AgentsSidebarConfig,
+     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
+diff --git a/src/config/model.rs b/src/config/model.rs
+index 8f3c7f8d..20c096d7 100644
+--- a/src/config/model.rs
++++ b/src/config/model.rs
+@@ -355,6 +355,9 @@ pub struct TerminalConfig {
+     pub new_workspace_cwd: Option<NewTerminalCwdConfig>,
+     /// Render Kitty graphics in compatible outer terminals. Default: true.
+     pub kitty_graphics: Option<bool>,
++    /// Local patch: send Shift+Enter as CSI-u (`ESC[13;2u`) to panes that
++    /// negotiated no keyboard protocol, instead of a bare CR. Default: false.
++    pub shift_enter_csi_u: bool,
+ }
+ 
+ #[derive(Debug, Deserialize)]
+@@ -1077,6 +1080,8 @@ pub struct UiConfig {
+     pub show_agent_labels_on_pane_borders: bool,
+     /// Hide the tab row when the workspace has one tab. Default: false.
+     pub hide_tab_bar_when_single_tab: bool,
++    /// Local patch: hide the hint bar while prefix mode is active. Default: false.
++    pub hide_prefix_mode_bar: bool,
+     /// Desktop tab row placement. Default: top.
+     pub tab_bar_position: TabBarPositionConfig,
+     /// Ordered entries shown at the right edge of the desktop tab row. Empty by default.
+@@ -1316,6 +1321,8 @@ impl Default for UiConfig {
+             pane_gaps: true,
+             show_agent_labels_on_pane_borders: false,
+             hide_tab_bar_when_single_tab: false,
++            // Local patch: stock behavior shows the prefix hint bar.
++            hide_prefix_mode_bar: false,
+             tab_bar_position: TabBarPositionConfig::Top,
+             tab_bar_right: Vec::new(),
+             tab_bar_right_separator: " ".into(),
+diff --git a/src/main.rs b/src/main.rs
+index d7593e9e..439ea5d4 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -122,6 +122,10 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+ # Render pane images in Kitty graphics-compatible outer terminals.
+ # kitty_graphics = true
+ 
++# Send Shift+Enter as CSI-u (ESC[13;2u) to panes without a keyboard protocol,
++# instead of a bare CR, so shells can bind it separately from Enter.
++# shift_enter_csi_u = false
++
+ [update]
+ # Update channel used by background version checks and `herdr update`.
+ # Stable builds default to "stable". Windows preview builds default to "preview"
+@@ -317,6 +321,9 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+ # New tabs can still be created with the configured keybinding.
+ # hide_tab_bar_when_single_tab = false
+ 
++# Hide the hint bar while prefix mode is active. The next key still applies.
++# hide_prefix_mode_bar = false
++
+ # Desktop tab row placement: "top" or "bottom".
+ # tab_bar_position = "top"
+ 
+diff --git a/src/pane.rs b/src/pane.rs
+index f80baeb8..95601f44 100644
+--- a/src/pane.rs
++++ b/src/pane.rs
+@@ -47,6 +47,8 @@ pub(crate) use self::terminal::test_encode_key_for_app;
+ #[cfg(unix)]
+ pub use self::terminal::InputState;
+ use self::terminal::{GhosttyPaneTerminal, PaneTerminal};
++// Local patch: `[terminal] shift_enter_csi_u` toggle.
++pub(crate) use self::terminal::set_shift_enter_csi_u;
+ pub(crate) use self::terminal::{
+     TerminalCompressionStep, TerminalDirtyPatch, TerminalDirtyPatchOutcome, TerminalReadSnapshot,
+     TerminalSearchDirection, TerminalSearchWindow, TerminalTextPoint, TerminalWordMotion,
+diff --git a/src/pane/terminal.rs b/src/pane/terminal.rs
+index 53f597d8..015fe112 100644
+--- a/src/pane/terminal.rs
++++ b/src/pane/terminal.rs
+@@ -2044,10 +2044,11 @@ impl GhosttyPaneTerminal {
+         };
+         let negotiated_nothing = keyboard_negotiated_nothing(&core.terminal);
+         // Local patch: legacy encoding turns Shift+Enter into a bare CR, so a
+-        // plain shell can't tell it from Enter. Send the CSI-u form instead,
+-        // as the outer terminal (wezterm SendString) does outside herdr; zsh
+-        // binds it to autosuggest-accept.
++        // plain shell can't tell it from Enter. With `shift_enter_csi_u`, send
++        // the CSI-u form instead, as the outer terminal (wezterm SendString)
++        // does outside herdr; zsh can bind it to autosuggest-accept.
+         if negotiated_nothing
++            && shift_enter_csi_u()
+             && key.code == crossterm::event::KeyCode::Enter
+             && key.modifiers == crossterm::event::KeyModifiers::SHIFT
+             && key.kind != crossterm::event::KeyEventKind::Release
+@@ -2537,6 +2538,18 @@ fn encode_key_with(
+     })
+ }
+ 
++// Local patch: `[terminal] shift_enter_csi_u`, process-wide like
++// `kitty_graphics::set_enabled` because key encoding runs below any config handle.
++static SHIFT_ENTER_CSI_U: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
++pub(crate) fn set_shift_enter_csi_u(enabled: bool) {
++    SHIFT_ENTER_CSI_U.store(enabled, std::sync::atomic::Ordering::Release);
++}
++
++fn shift_enter_csi_u() -> bool {
++    SHIFT_ENTER_CSI_U.load(std::sync::atomic::Ordering::Acquire)
++}
++
+ /// True when the pane's app asked for no enhanced keyboard protocol (no Kitty
+ /// flags, no modifyOtherKeys 2), read from libghostty's live state.
+ fn keyboard_negotiated_nothing(terminal: &crate::ghostty::Terminal) -> bool {

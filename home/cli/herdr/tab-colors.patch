@@ -1,5 +1,5 @@
 diff --git a/src/app/api/workspaces.rs b/src/app/api/workspaces.rs
-index 10544ba..d3bd2d7 100644
+index 10544bae..d3bd2d78 100644
 --- a/src/app/api/workspaces.rs
 +++ b/src/app/api/workspaces.rs
 @@ -57,7 +57,7 @@ impl App {
@@ -12,7 +12,7 @@ index 10544ba..d3bd2d7 100644
              )
          });
 diff --git a/src/app/creation.rs b/src/app/creation.rs
-index 21e976c..4a45090 100644
+index 21e976ce..4a450901 100644
 --- a/src/app/creation.rs
 +++ b/src/app/creation.rs
 @@ -78,6 +78,15 @@ impl App {
@@ -41,7 +41,7 @@ index 21e976c..4a45090 100644
  
      pub(super) fn workspace_creation_source(&self) -> Option<usize> {
 diff --git a/src/app/mod.rs b/src/app/mod.rs
-index 6effa3a..ee502e9 100644
+index 6effa3a5..abd72b34 100644
 --- a/src/app/mod.rs
 +++ b/src/app/mod.rs
 @@ -541,6 +541,7 @@ impl App {
@@ -77,8 +77,16 @@ index 6effa3a..ee502e9 100644
          }
  
          if !invalid_section("worktrees") {
+@@ -1142,6 +1145,7 @@ mod tests {
+                 command: "status".into(),
+                 interval_seconds: 5,
+                 timeout_seconds: 2,
++                accent: false,
+             }],
+             " ",
+         );
 diff --git a/src/app/state.rs b/src/app/state.rs
-index f30279d..78a7ca8 100644
+index f30279d6..78a7ca83 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
 @@ -836,6 +836,8 @@ pub struct AppState {
@@ -115,7 +123,7 @@ index f30279d..78a7ca8 100644
              sound: SoundConfig {
                  enabled: false,
 diff --git a/src/app/tab_bar_status.rs b/src/app/tab_bar_status.rs
-index 596c211..98d7e1d 100644
+index 596c2117..a59b1e8c 100644
 --- a/src/app/tab_bar_status.rs
 +++ b/src/app/tab_bar_status.rs
 @@ -51,6 +51,7 @@ impl App {
@@ -166,8 +174,48 @@ index 596c211..98d7e1d 100644
          }
  
          self.next_tab_bar_datetime_refresh =
+@@ -646,6 +657,7 @@ mod tests {
+                 command: MULTILINE_COMMAND.into(),
+                 interval_seconds: 5,
+                 timeout_seconds: 2,
++                accent: false,
+             }],
+             " ",
+         );
+@@ -653,6 +665,7 @@ mod tests {
+         app.configure_tab_bar_status(
+             &[TabBarRightEntryConfig::Text {
+                 text: "fresh".into(),
++                accent: false,
+             }],
+             " ",
+         );
+@@ -681,6 +694,7 @@ mod tests {
+                 command,
+                 interval_seconds: 5,
+                 timeout_seconds: 20,
++                accent: false,
+             }],
+             " ",
+         );
+@@ -699,6 +713,7 @@ mod tests {
+         app.configure_tab_bar_status(
+             &[TabBarRightEntryConfig::Text {
+                 text: "reloaded".into(),
++                accent: false,
+             }],
+             " ",
+         );
+@@ -727,6 +742,7 @@ mod tests {
+                 command: MULTILINE_COMMAND.into(),
+                 interval_seconds: 5,
+                 timeout_seconds: 2,
++                accent: false,
+             }],
+             " ",
+         );
 diff --git a/src/client/shell/composition.rs b/src/client/shell/composition.rs
-index b7ab4a9..eaa540d 100644
+index b7ab4a96..eaa540d4 100644
 --- a/src/client/shell/composition.rs
 +++ b/src/client/shell/composition.rs
 @@ -571,7 +571,8 @@ impl ClientShellState {
@@ -217,7 +265,7 @@ index b7ab4a9..eaa540d 100644
                  occlusion.cover(rendered.area);
                  self.hits.overlay_primary = rendered.primary;
 diff --git a/src/client/shell/input.rs b/src/client/shell/input.rs
-index ee92d59..546c180 100644
+index ee92d590..546c1807 100644
 --- a/src/client/shell/input.rs
 +++ b/src/client/shell/input.rs
 @@ -756,7 +756,11 @@ impl ClientShellState {
@@ -234,7 +282,7 @@ index ee92d59..546c180 100644
              return;
          }
 diff --git a/src/client/shell/overlay_input.rs b/src/client/shell/overlay_input.rs
-index 7f797ef..edb5d79 100644
+index 7f797ef7..edb5d796 100644
 --- a/src/client/shell/overlay_input.rs
 +++ b/src/client/shell/overlay_input.rs
 @@ -492,7 +492,9 @@ impl ClientShellState {
@@ -318,7 +366,7 @@ index 7f797ef..edb5d79 100644
                      if let Some(ClientShellOverlay::Help(help)) = self.overlay.as_mut() {
                          help.scroll = 0;
 diff --git a/src/client/shell/overlays.rs b/src/client/shell/overlays.rs
-index f26cc6e..4737d11 100644
+index f26cc6e4..4737d113 100644
 --- a/src/client/shell/overlays.rs
 +++ b/src/client/shell/overlays.rs
 @@ -844,12 +844,9 @@ fn render_navigator_overlay(
@@ -448,7 +496,7 @@ index f26cc6e..4737d11 100644
          Style::default().fg(p.overlay0).bg(p.panel_bg),
      );
 diff --git a/src/client/shell/render.rs b/src/client/shell/render.rs
-index 248216c..a401d0d 100644
+index 248216c1..a401d0dd 100644
 --- a/src/client/shell/render.rs
 +++ b/src/client/shell/render.rs
 @@ -38,7 +38,11 @@ pub(super) fn render_mode_bar(
@@ -465,7 +513,7 @@ index 248216c..a401d0d 100644
      }
  
 diff --git a/src/client/shell/tabs.rs b/src/client/shell/tabs.rs
-index 3fdcf7d..b9c3c83 100644
+index 3fdcf7dc..b9c3c830 100644
 --- a/src/client/shell/tabs.rs
 +++ b/src/client/shell/tabs.rs
 @@ -100,19 +100,16 @@ pub(crate) fn render_tab_bar(
@@ -581,7 +629,7 @@ index 3fdcf7d..b9c3c83 100644
      if tab.zoomed {
          format!("{} Z", tab.label)
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 29802fd..6241c60 100644
+index 29802fd9..6241c60d 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
 @@ -258,6 +258,8 @@ pub struct TerminalConfig {
@@ -594,7 +642,7 @@ index 29802fd..6241c60 100644
      pub kitty_graphics: Option<bool>,
  }
 diff --git a/src/config/tab_bar.rs b/src/config/tab_bar.rs
-index 253b1b7..a3f796a 100644
+index 253b1b74..94b6afac 100644
 --- a/src/config/tab_bar.rs
 +++ b/src/config/tab_bar.rs
 @@ -29,6 +29,9 @@ pub enum TabBarRightEntryConfig {
@@ -624,8 +672,22 @@ index 253b1b7..a3f796a 100644
              } => {
                  if command.trim().is_empty() {
                      diagnostics.push(format!(
+@@ -160,11 +166,13 @@ entries = [
+                 command: String::new(),
+                 interval_seconds: 0,
+                 timeout_seconds: 0,
++                accent: false,
+             },
+             TabBarRightEntryConfig::Command {
+                 command: "status.sh".into(),
+                 interval_seconds: MAX_TAB_BAR_COMMAND_INTERVAL_SECONDS + 1,
+                 timeout_seconds: MAX_TAB_BAR_COMMAND_TIMEOUT_SECONDS + 1,
++                accent: false,
+             },
+         ];
+ 
 diff --git a/src/main.rs b/src/main.rs
-index f97e7e2..c83d4cb 100644
+index f97e7e2b..c83d4cb1 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -116,6 +116,8 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
@@ -638,7 +700,7 @@ index f97e7e2..c83d4cb 100644
  # Render pane images in Kitty graphics-compatible outer terminals.
  # kitty_graphics = true
 diff --git a/src/pane/terminal.rs b/src/pane/terminal.rs
-index d4b7ef5..53f597d 100644
+index d4b7ef57..53f597d8 100644
 --- a/src/pane/terminal.rs
 +++ b/src/pane/terminal.rs
 @@ -2043,6 +2043,17 @@ impl GhosttyPaneTerminal {
@@ -660,7 +722,7 @@ index d4b7ef5..53f597d 100644
          // Super, and a record would deliver the bare key (#3710).
          if negotiated_nothing && legacy_super_chord(&key) {
 diff --git a/src/server/client_shell.rs b/src/server/client_shell.rs
-index 0a98da0..3ec098f 100644
+index 0a98da09..3ec098ff 100644
 --- a/src/server/client_shell.rs
 +++ b/src/server/client_shell.rs
 @@ -202,7 +202,8 @@ pub(super) fn snapshot_with_completions(
@@ -697,7 +759,7 @@ index 0a98da0..3ec098f 100644
              }
              crate::app::state::TabBarStatusSegment::Zoom
 diff --git a/src/ui/panes.rs b/src/ui/panes.rs
-index 6a91f18..652cf9e 100644
+index 6a91f18a..652cf9e8 100644
 --- a/src/ui/panes.rs
 +++ b/src/ui/panes.rs
 @@ -596,8 +596,10 @@ fn render_pane_borders(

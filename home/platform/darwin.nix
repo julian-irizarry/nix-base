@@ -14,6 +14,8 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
 
   programs.git.ignores = [ ".DS_Store" ];
 
+  home.packages = [ pkgs.gnused ];
+
   targets.darwin.defaults.NSGlobalDomain = {
     KeyRepeat = 2;
     InitialKeyRepeat = 15;
@@ -22,6 +24,14 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     NSAutomaticDashSubstitutionEnabled = false;
     NSAutomaticSpellingCorrectionEnabled = false;
   };
+
+  targets.darwin.defaults."com.apple.dock" = {
+    autohide-delay = 0.0;
+    autohide-time-modifier = 0.15;
+    mru-spaces = false;
+  };
+
+  targets.darwin.defaults."com.apple.HIToolbox".AppleFnUsageType = 0;
 
   home.file.".ssh/config.d/identity-agent" = lib.mkIf config.my.ssh.onePassword.enable {
     text = ''

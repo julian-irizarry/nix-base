@@ -94,8 +94,6 @@ in
       nd = "nix develop -vvv";
       ls = "eza -a --icons=always";
       ll = "eza -lhag --icons=always";
-      cat = "bat";
-      grep = "rg";
       diff = "diff --color=auto";
       ip = "ip -color=auto";
     };

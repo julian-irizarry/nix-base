@@ -10,6 +10,7 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
     # across modules; keep list-valued keys unset here so consumer lists
     # don't get clobbered.
     settings = {
+      config-version = 2;
       start-at-login = false;
       default-root-container-layout = "tiles";
       default-root-container-orientation = "auto";
@@ -64,6 +65,23 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
         "alt-g" = "layout floating tiling";
 
         "alt-shift-semicolon" = "reload-config";
+
+        "alt-r" = "mode resize";
+      };
+
+      mode.resize.binding = {
+        "h" = "resize width -50";
+        "j" = "resize height +50";
+        "k" = "resize height -50";
+        "l" = "resize width +50";
+
+        "shift-h" = "resize width -10";
+        "shift-j" = "resize height +10";
+        "shift-k" = "resize height -10";
+        "shift-l" = "resize width +10";
+
+        "enter" = "mode main";
+        "esc" = "mode main";
       };
     };
   };

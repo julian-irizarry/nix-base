@@ -148,22 +148,24 @@ Missing deps don't break noctalia — the affected widgets just show no data.
 
 ## Home-manager options (`my.*`)
 
-| Option                       | Type        | Default                | Description                                          |
-| ---------------------------- | ----------- | ---------------------- | ---------------------------------------------------- |
-| `my.git.userName`            | str         | —                      | Git user.name                                        |
-| `my.git.userEmail`           | str         | —                      | Git user.email                                       |
-| `my.git.signingKey`          | str or null | `null`                 | SSH/GPG signing key                                  |
-| `my.git.signingFormat`       | enum        | `"ssh"`                | openpgp, ssh, x509                                   |
-| `my.git.extraIncludes`       | list        | `[]`                   | Conditional gitconfig includes                       |
-| `my.zsh.extraInitFragments`  | list        | `[]`                   | Shell snippets appended to .zshrc                    |
-| `my.nh.homeConfiguration`    | str         | current system         | homeConfigurations name `hms` switches               |
-| `my.ssh.extraHosts`          | attrs       | `{}`                   | SSH matchBlocks                                      |
-| `my.font.nerdFamily`         | str         | `"fira-code"`          | Nerd font attr name                                  |
-| `my.font.name`               | str         | `"FiraCode Nerd Font"` | Font family for terminals/editors                    |
-| `my.font.size`               | int         | `13`                   | Font size                                            |
-| `my.platform.nixGL.enable`   | bool        | `true`                 | GPU wrapping (auto-disabled on NixOS)                |
-| `my.desktop.hyprland.enable` | bool        | `false`                | Hyprland home config (keybinds, window rules, shell) |
-| `my.desktop.hyprland.shell`  | enum        | `"noctalia"`           | Shell launched on hyprland login                     |
+| Option                        | Type        | Default                | Description                                                  |
+| ----------------------------- | ----------- | ---------------------- | ------------------------------------------------------------ |
+| `my.git.userName`             | str         | —                      | Git user.name                                                |
+| `my.git.userEmail`            | str         | —                      | Git user.email                                               |
+| `my.git.signingKey`           | str or null | `null`                 | SSH/GPG signing key                                          |
+| `my.git.signingFormat`        | enum        | `"ssh"`                | openpgp, ssh, x509                                           |
+| `my.git.extraIncludes`        | list        | `[]`                   | Conditional gitconfig includes                               |
+| `my.zsh.extraInitFragments`   | list        | `[]`                   | Shell snippets appended to .zshrc                            |
+| `my.nh.homeConfiguration`     | str         | current system         | homeConfigurations name `hms` switches                       |
+| `my.ssh.extraHosts`           | attrs       | `{}`                   | SSH matchBlocks                                              |
+| `my.font.nerdFamily`          | str         | `"fira-code"`          | Nerd font attr name                                          |
+| `my.font.name`                | str         | `"FiraCode Nerd Font"` | Font family for terminals/editors                            |
+| `my.font.size`                | int         | `13`                   | Font size                                                    |
+| `my.herdr.worktreesDirectory` | str or null | `null`                 | herdr `[worktrees] directory`; unset keeps the default       |
+| `my.herdr.newWorkspaceCwd`    | str or null | `null`                 | herdr `[terminal] new_workspace_cwd`; unset follows the pane |
+| `my.platform.nixGL.enable`    | bool        | `true`                 | GPU wrapping (auto-disabled on NixOS)                        |
+| `my.desktop.hyprland.enable`  | bool        | `false`                | Hyprland home config (keybinds, window rules, shell)         |
+| `my.desktop.hyprland.shell`   | enum        | `"noctalia"`           | Shell launched on hyprland login                             |
 
 ### Sessionizer and the Herdr launcher
 

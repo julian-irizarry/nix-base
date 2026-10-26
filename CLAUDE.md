@@ -75,6 +75,8 @@ Only values that genuinely differ between consumers are options. Everything else
   passes to `nh home switch -c`; defaults to the system string (mkHome's keys).
   Under NixOS-integrated home-manager (`osConfig` set) `hms` uses
   `nh os switch` instead. Consumers point `programs.nh.flake` at their checkout.
+- `my.herdr.{worktreesDirectory,newWorkspaceCwd}` — herdr config keys that
+  differ per machine; null omits the key so herdr uses its default.
 - `my.ssh.extraHosts` — attrset of matchBlock specs, rendered to
   `~/.ssh/config.d/hm-hosts` (not `~/.ssh/config` — see SSH gotcha below).
 - `my.font.{nerdFamily,name,size}` — `nerdFamily` indexes `pkgs.nerd-fonts.*`;
@@ -235,8 +237,12 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   mode when no text field has focus) with `doCheck = false`
   because upstream tests assert the stock colors. When a nixpkgs bump moves
   herdr and the patch stops applying, regenerate it against the new source.
-  herdr's `config.toml` and plugins are not home-manager managed; its settings
-  UI writes to the config. On Linux the default session's server runs as the
+  `config.toml` is a template (`home/cli/herdr/config.toml`) rendered to a
+  read-only `~/.config/herdr/config.toml`, so herdr's settings UI can't save to
+  it; edit the template. Machine-specific keys are `@marker@` lines filled from
+  `my.herdr.{worktreesDirectory,newWorkspaceCwd}` and omitted when null. The
+  GitHub plugins (gitview, herdr-plus, herdr-splits) are still installed by
+  hand. On Linux the default session's server runs as the
   `herdr` user service (`OOMPolicy=continue`, `ExitType=cgroup` for live
   handoff, `X-SwitchMethod=keep-old` so a switch doesn't kill panes) instead
   of inside the cgroup of the terminal that launched it. `MemoryHigh=60%` /

@@ -90,6 +90,29 @@
       '';
     };
 
+    herdr = {
+      worktreesDirectory = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "~/sources/.worktrees";
+        description = ''
+          Where herdr creates worktrees (<directory>/<repo>/<branch>), written
+          to `[worktrees] directory` in config.toml. Null leaves the key out
+          and herdr uses its default.
+        '';
+      };
+      newWorkspaceCwd = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "~/sources";
+        description = ''
+          Directory new workspaces start in, written to
+          `[terminal] new_workspace_cwd` in config.toml. Null leaves the key
+          out so new workspaces follow the focused pane.
+        '';
+      };
+    };
+
     vicinae = {
       enableSessionizer = lib.mkOption {
         type = lib.types.bool;

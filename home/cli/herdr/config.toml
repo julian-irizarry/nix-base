@@ -1,0 +1,255 @@
+onboarding = false
+
+# wezterm muscle memory, no prefix. wezterm passes these through
+# (nix-base keymaps.lua). Each keeps herdr's prefix default too.
+[keys]
+prefix = "ctrl+space"
+new_tab = ["prefix+c", "ctrl+shift+t"]
+previous_tab = "ctrl+shift+h"
+next_tab = "ctrl+shift+l"
+switch_tab = ["prefix+1..9", "ctrl+1..9"]
+move_tab_previous = "ctrl+shift+comma"
+move_tab_next = "ctrl+shift+period"
+split_vertical = ["prefix+v", "ctrl+shift+enter"]
+split_horizontal = ["prefix+minus", "ctrl+shift+minus"]
+close_pane = ["prefix+x", "ctrl+shift+w"]
+zoom = ["prefix+z", "ctrl+shift+f"]
+goto = ["prefix+f", "ctrl+alt+t"]
+workspace_picker = ["prefix+w", "prefix+e"]
+edit_scrollback = "ctrl+shift+e"
+copy_mode = "prefix+["
+new_workspace = ["prefix+shift+n", "ctrl+shift+n"]
+close_workspace = ["prefix+shift+d", "ctrl+shift+x"]
+detach = "prefix+d"
+# Worktrees of the focused repo workspace. prefix+shift+g (the new_worktree
+# default) is gitview below. open_worktree only works from the main repo's
+# workspace and the prefix+/ picker covers it, so prefix+t is the orchestrator.
+new_worktree = "prefix+a"
+open_worktree = ""
+# prefix+n/p cycle workspaces (tabs keep ctrl+shift+h/l); prefix+j/k cycle
+# agents across workspaces (panes keep ctrl+hjkl via herdr-splits).
+next_workspace = "prefix+n"
+previous_workspace = "prefix+p"
+next_agent = "prefix+j"
+previous_agent = "prefix+k"
+focus_pane_down = ""
+focus_pane_up = ""
+# Navigate mode (workspace picker / goto): j/k walk the spaces list. Pane
+# up/down there is dropped; ctrl+j/k (herdr-splits) already does it.
+navigate_workspace_up = ["k", "up"]
+navigate_workspace_down = ["j", "down"]
+navigate_pane_up = ""
+navigate_pane_down = ""
+# Sidebar on prefix+s, which was settings (rarely used, left unbound).
+toggle_sidebar = "prefix+s"
+# Swap the focused pane with its neighbor. Resize is modal (prefix+r) because
+# aerospace owns alt+hjkl.
+swap_pane_left = "ctrl+alt+h"
+swap_pane_down = "ctrl+alt+j"
+swap_pane_up = "ctrl+alt+k"
+swap_pane_right = "ctrl+alt+l"
+settings = ""
+
+# workspace-jumps: vim ctrl-o/ctrl-i over visited workspaces.
+[[keys.command]]
+key = "ctrl+shift+o"
+type = "plugin_action"
+command = "workspace-jumps.back"
+description = "previous workspace in jump list"
+
+[[keys.command]]
+key = "ctrl+shift+i"
+type = "plugin_action"
+command = "workspace-jumps.forward"
+description = "next workspace in jump list"
+
+# gitview: changed files + diff; Enter opens nvim, notes go to an agent pane.
+[[keys.command]]
+key = "prefix+g"
+type = "plugin_action"
+command = "chmarax.gitview.toggle"
+description = "git view sidebar"
+
+[[keys.command]]
+key = "prefix+shift+g"
+type = "plugin_action"
+command = "chmarax.gitview.toggle-tab"
+description = "git view tab"
+
+# Repos under ~/sources with their worktrees nested; opens or focuses one.
+[[keys.command]]
+key = "prefix+slash"
+type = "popup"
+command = "~/.local/share/herdr-plugins/tab-icons/pickers/sources.sh"
+width = "60%"
+height = "70%"
+description = "repos + worktrees"
+
+# Orchestrator: a long-lived shell in ~/sources held by shpool. prefix+t opens
+# it here; inside, the same prefix+t is shpool's detach, which closes the popup
+# and leaves the shell running. `exit` ends the session.
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "~/.local/share/herdr-plugins/orchestrator/orchestrator.sh"
+width = "85%"
+height = "85%"
+description = "orchestrator shell"
+
+# herdr-splits: ctrl+hjkl moves across herdr panes and nvim splits. Forwarded
+# into nvim when the focused pane runs it.
+[[keys.command]]
+key = "ctrl+h"
+type = "plugin_action"
+command = "herdr-splits.nav-left"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "plugin_action"
+command = "herdr-splits.nav-down"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "plugin_action"
+command = "herdr-splits.nav-up"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "plugin_action"
+command = "herdr-splits.nav-right"
+
+@worktrees@
+
+[ui]
+tab_bar_position = "bottom"
+prompt_new_tab_name = false
+show_agent_labels_on_pane_borders = true
+sidebar_collapsed_mode = "hidden"
+pane_scrollbars = false
+# wezterm tabline right side: cpu, clock, domain pill. Per-entry `style` and
+# `padding` are from the nix-base herdr patch (theme-elements).
+tab_bar_right = [
+  { type = "command", command = "~/.local/share/herdr-plugins/tab-icons/status/cpu.sh", interval_seconds = 5 },
+  { type = "datetime", format = "󰅐 %H:%M" },
+  { type = "command", command = "~/.local/share/herdr-plugins/tab-icons/status/domain.sh", interval_seconds = 2, style = { fg = "panel_bg", bg = "accent", bold = true }, padding = 1 },
+]
+tab_bar_right_separator = "  "
+
+status_indicators = "symbols"
+# Patched herdr (ui-toggles): no hint bar after the prefix; the next key still
+# applies.
+hide_prefix_mode_bar = true
+
+# Patched herdr (theme-elements): Powerline caps on the active tab. Their color
+# comes from the active tab and the bar background.
+[ui.tab_bar]
+active_caps = ["\ue0b2", "\ue0b0"]
+
+[theme]
+name = "rose-pine"
+auto_switch = false
+
+# wezterm tabline: black tab bar, neutral gray #222222 active tab with white text.
+# The palette below; which element uses which color is [theme.elements].
+[theme.custom]
+panel_bg = "#000000"
+sidebar_bg = "reset"
+# Sidebar highlight (active workspace / agent row).
+active_row_bg = "#2a2a2a"
+# Active tab and navigator selection (via [theme.elements]), navigate-mode cursor row.
+selection_bg = "#222222"
+text = "#ffffff"
+# Inactive tab and status text (via [theme.elements]), wezterm's tabline foreground.
+subtext0 = "#c7c7c7"
+# Inactive pane borders; also muted hint/label text.
+overlay0 = "#4a4a4a"
+# Pastel pink pill (wezterm tabline a/z sections), popup borders, buttons.
+accent = "#ff9da4"
+# Focused pane border (via [theme.elements]).
+peach = "#8a8a8a"
+
+# Patched herdr (theme-elements): which UI element uses which palette color.
+# Unset slots draw like stock herdr.
+[theme.elements.tab]
+active = { fg = "text", bg = "selection_bg" }
+# tab-icons renames every tab, which makes them "custom" tabs; no bold.
+active_custom = { bold = false }
+inactive = { fg = "subtext0", bg = "panel_bg" }
+inactive_custom = { fg = "subtext0" }
+status = { fg = "subtext0" }
+
+[theme.elements.pane]
+border_focused = { fg = "peach" }
+
+# No fill, so popups, menus and the navigator match the transparent sidebar.
+[theme.elements.popup]
+body = { bg = "reset" }
+
+# Selected row only swaps in the active tab background, row colors stay.
+[theme.elements.navigator]
+selected = { fg = "inherit", bg = "selection_bg", bold = false }
+
+[ui.sound]
+enabled = false
+
+[ui.toast]
+# In-app toasts. prefix+o (open_notification_target) only works while one is on
+# screen: 8s for needs-attention, 5s for finished. After that the sidebar state
+# icons are the record.
+delivery = "herdr"
+
+[terminal]
+@newWorkspaceCwd@
+# Patched herdr (ui-toggles): Shift+Enter reaches legacy panes as CSI-u so zsh
+# can bind it to autosuggest-accept.
+shift_enter_csi_u = true
+
+# Sidebar rows. Line 1 is the agent's name then its kind. herdr's `agent`
+# token is the name when set and the kind otherwise, so hide it when it's just
+# the kind; `$kind` comes from tab-icons/agent-kind.sh. Line 2 is the state
+# word in the wezterm tabline pastels. No workspace, it was clutter. Claude rows
+# add the session title claude writes to the terminal title, spinner glyph
+# stripped. Overrides replace `rows`, so the claude one
+# repeats the first two lines.
+[ui.sidebar.agents]
+row_gap = 1
+rows = [
+  ["state_icon",
+   { token = "agent", bold = true, rules = [{ equals = "claude", hide = true }, { equals = "codex", hide = true }] },
+   { token = "$kind", dim = true }],
+  [{ token = "state_text", rules = [
+      { equals = "blocked", fg = "#ff8373", bold = true },
+      { equals = "working", fg = "#ffb473" },
+      { equals = "done", fg = "#a6e3a1" },
+      { equals = "idle", fg = "#8a8a8a" },
+  ] }],
+]
+
+[ui.sidebar.agents.rows_by_agent]
+claude = [
+  ["state_icon",
+   { token = "agent", bold = true, rules = [{ equals = "claude", hide = true }] },
+   { token = "$kind", dim = true }],
+  [{ token = "state_text", rules = [
+      { equals = "blocked", fg = "#ff8373", bold = true },
+      { equals = "working", fg = "#ffb473" },
+      { equals = "done", fg = "#a6e3a1" },
+      { equals = "idle", fg = "#8a8a8a" },
+  ] }],
+  [{ token = "terminal_title_stripped", dim = true }],
+]
+
+[ui.sidebar.spaces]
+rows = [
+  ["state_icon", { token = "workspace", bold = true }],
+  [{ token = "branch", fg = "#8a8a8a" }, "git_status"],
+]
+
+# Agent status icons (status-icons patch, nix-base). Over the `symbols` preset:
+# working spins in the state-word orange, done is a green circle-check, idle
+# is a slate grayish-blue ring.
+# Unset states keep the preset glyph and theme color.
+[ui.status_icons]
+working = { type = "spinner", color = "#ffb473" }
+done = { type = "symbol", icon = "󰗠", color = "#a6e3a1" }
+idle = { type = "symbol", icon = "○", color = "#8a9bb0" }

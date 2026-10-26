@@ -1,6 +1,34 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
+  cfg = config.my.herdr;
+
+  # config.toml is a template: the machine-specific keys are options that
+  # render only when set, so an unset option leaves herdr on its default.
+  configToml =
+    builtins.replaceStrings
+      [ "@worktrees@\n" "@newWorkspaceCwd@\n" ]
+      [
+        (lib.optionalString (cfg.worktreesDirectory != null) ''
+          # New worktrees land in <directory>/<repo>/<branch>. The sources picker skips
+          # dot dirs, so these only show nested under their repo.
+          [worktrees]
+          directory = ${builtins.toJSON cfg.worktreesDirectory}
+        '')
+        (lib.optionalString (cfg.newWorkspaceCwd != null) ''
+          # New workspaces (sidebar New, prefix+shift+n) start here instead of
+          # following the focused pane. Panes and tabs still follow. new_workspace_cwd
+          # is from the nix-base herdr patch; stock herdr ignores it.
+          new_workspace_cwd = ${builtins.toJSON cfg.newWorkspaceCwd}
+        '')
+      ]
+      (builtins.readFile ./config.toml);
+
   # Local plugins, installed where config.toml and herdr's plugin registry
   # already point. Only the ones with a herdr-plugin.toml get linked;
   # orchestrator is just scripts behind a [[keys.command]] popup.
@@ -51,9 +79,12 @@ in
   # This rebuilds herdr from source (Rust + Zig, not on cache.nixos.org); if a
   # nixpkgs bump stops the patches applying, rebase jrizzy/local-patches onto
   # the new release in the herdr checkout and regenerate the stack.
-  # config.toml stays hand-managed: herdr's settings UI writes to it. GitHub
-  # plugins (gitview, herdr-plus, herdr-splits) are installed by hand with
+  # config.toml is rendered from ./config.toml and read-only, so herdr's
+  # settings UI can't save to it; edit the template instead. GitHub plugins
+  # (gitview, herdr-plus, herdr-splits) are installed by hand with
   # `herdr plugin install`, they build from their own repos.
+  xdg.configFile."herdr/config.toml".text = configToml;
+
   home.packages = [
     herdr
     # Holds the long-lived shell session behind herdr's prefix+t orchestrator

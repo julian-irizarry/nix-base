@@ -1,0 +1,16 @@
+# shpool config for the herdr orchestrator popup only (passed with -c), so the
+# default ~/.config/shpool/config.toml stays untouched.
+
+# shpool would otherwise prefix the prompt with "shpool:orchestrator".
+prompt_prefix = ""
+
+# shpool spawns the shell with a scrubbed env (TERM only), so TUIs like Claude
+# Code fall back to 256 colours. Only COLORTERM: forwarding TERM_PROGRAM looks to stop
+# the Ctrl-Space t detach below from reaching shpool while Claude Code runs.
+forward_env = ["COLORTERM"]
+
+# Same chord as herdr's prefix+t, so one key opens the popup (herdr) and hides
+# it (shpool detaches, the attach exits, herdr closes the popup).
+[[keybinding]]
+binding = "Ctrl-Space t"
+action = "detach"

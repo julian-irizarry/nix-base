@@ -1,0 +1,31 @@
+id = "workspace-jumps"
+name = "Workspace jumps"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Vim-style jump list across workspaces: back and forward through the workspaces you've visited."
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["bash", "workspace-jumps.sh", "record"]
+
+[[events]]
+on = "workspace.focused"
+command = ["bash", "workspace-jumps.sh", "record"]
+
+# Drop a closed workspace right away, so the focus herdr moves to next isn't
+# mistaken for a new jump that throws away the forward history.
+[[events]]
+on = "workspace.closed"
+command = ["bash", "workspace-jumps.sh", "closed"]
+
+[[actions]]
+id = "back"
+title = "workspace-jumps: back"
+contexts = ["global"]
+command = ["bash", "workspace-jumps.sh", "back"]
+
+[[actions]]
+id = "forward"
+title = "workspace-jumps: forward"
+contexts = ["global"]
+command = ["bash", "workspace-jumps.sh", "forward"]

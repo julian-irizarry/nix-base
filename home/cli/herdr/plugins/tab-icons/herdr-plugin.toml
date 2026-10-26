@@ -1,0 +1,53 @@
+id = "tab-icons"
+name = "Tab icons"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Label tabs with a process icon plus the focused pane's directory or ssh host, like the wezterm tabline."
+platforms = ["linux", "macos"]
+
+# Relabel on structural/focus events instead of polling. A cwd change shows up
+# on the next tab or pane focus.
+[[startup]]
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "tab.created"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "tab.focused"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "pane.created"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "pane.focused"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "pane.exited"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["bash", "tab-icons.sh"]
+
+[[events]]
+on = "workspace.focused"
+command = ["bash", "tab-icons.sh"]
+
+# Agent kind as the `kind` pane token for the sidebar rows.
+[[startup]]
+command = ["bash", "agent-kind.sh"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["bash", "agent-kind.sh"]
+
+[[actions]]
+id = "refresh"
+title = "tab-icons: relabel tabs now"
+contexts = ["workspace"]
+command = ["bash", "tab-icons.sh"]

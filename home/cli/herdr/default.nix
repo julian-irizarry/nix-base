@@ -1,6 +1,20 @@
 { pkgs, lib, ... }:
 
 let
+  # Local plugins, installed where config.toml and herdr's plugin registry
+  # already point. Only the ones with a herdr-plugin.toml get linked;
+  # orchestrator is just scripts behind a [[keys.command]] popup.
+  pluginRoot = ".local/share/herdr-plugins";
+  plugins = [
+    "tab-icons"
+    "workspace-jumps"
+    "orchestrator"
+  ];
+  linkedPlugins = [
+    "tab-icons"
+    "workspace-jumps"
+  ];
+
   # Patches are an ordered stack, generated from the herdr checkout next to
   # nix-base (branch jrizzy/local-patches, one commit or merge per file):
   #   git diff <prev> <next> > home/cli/herdr/<name>.patch
@@ -37,14 +51,41 @@ in
   # This rebuilds herdr from source (Rust + Zig, not on cache.nixos.org); if a
   # nixpkgs bump stops the patches applying, rebase jrizzy/local-patches onto
   # the new release in the herdr checkout and regenerate the stack.
-  # config.toml and plugins stay hand-managed: herdr's settings UI writes to
-  # the config.
+  # config.toml stays hand-managed: herdr's settings UI writes to it. GitHub
+  # plugins (gitview, herdr-plus, herdr-splits) are installed by hand with
+  # `herdr plugin install`, they build from their own repos.
   home.packages = [
     herdr
     # Holds the long-lived shell session behind herdr's prefix+t orchestrator
     # popup; the popup only runs `shpool attach`, so hiding it detaches.
     pkgs.shpool
   ];
+
+  # recursive: each file is its own store symlink, so the plugin directories
+  # stay real paths and herdr's registry entry (plugin_root) doesn't change
+  # between generations. Scripts that resolve their own path (realpath "$0")
+  # land in the store copy, where their sibling files are too.
+  home.file = lib.listToAttrs (
+    map (name: {
+      name = "${pluginRoot}/${name}";
+      value = {
+        source = ./plugins/${name};
+        recursive = true;
+      };
+    }) plugins
+  );
+
+  # A fresh machine has an empty registry. Link only plugins that aren't
+  # registered yet, so a plugin disabled by hand stays disabled. Works without
+  # a running server.
+  home.activation.herdrPlugins = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    for name in ${lib.concatStringsSep " " linkedPlugins}; do
+      if ! ${herdr}/bin/herdr plugin list --json 2>/dev/null \
+        | ${pkgs.jq}/bin/jq -e --arg id "$name" '.result.plugins[] | select(.plugin_id == $id)' >/dev/null; then
+        run ${herdr}/bin/herdr plugin link "$HOME/${pluginRoot}/$name" >/dev/null
+      fi
+    done
+  '';
 
   # The default session's server runs as its own unit so it's no longer in the
   # cgroup of whichever terminal started it: under wezterm's scope one OOM kill

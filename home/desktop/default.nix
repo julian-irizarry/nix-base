@@ -4,6 +4,7 @@
     ./cosmic.nix
     ./hyprland
     ./vicinae.nix
+    ./herdr-launcher.nix
     ./sessionizer
   ];
 }

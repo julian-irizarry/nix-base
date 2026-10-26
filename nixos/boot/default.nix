@@ -22,10 +22,7 @@
     })
   ];
 
-  boot.initrd.systemd = lib.mkIf config.sys.boot.fido2Unlock.enable {
-    enable = true;
-    fido2.enable = true;
-  };
+  boot.initrd.systemd.fido2.enable = lib.mkIf config.sys.boot.fido2Unlock.enable true;
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 }

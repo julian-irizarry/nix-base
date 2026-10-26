@@ -223,7 +223,7 @@
         type = lib.types.bool;
         default = false;
         description = ''
-          Enable boot.initrd.systemd.{enable,fido2.enable} so a LUKS volume
+          Enable boot.initrd.systemd.fido2.enable so a LUKS volume
           configured with crypttabExtraOpts = [ "fido2-device=auto" ] unlocks
           via a tap on an enrolled YubiKey/FIDO2 device. Consumers own the
           disko LUKS spec that triggers this — this option just enables the

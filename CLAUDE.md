@@ -116,7 +116,7 @@ Everything else (COSMIC, PipeWire, firewall, libvirt, 1Password) stays hardcoded
   own `experimental-features`, `auto-optimise-store`, and `nix.gc` wiring.
 - `sys.boot.loader` — enum `"systemd-boot" | "grub"`, default `"systemd-boot"`. GRUB
   enables `enableCryptodisk` for encrypted root without a separate `/boot` partition.
-- `sys.boot.fido2Unlock.enable` — toggle `boot.initrd.systemd.{enable,fido2.enable}`
+- `sys.boot.fido2Unlock.enable` — toggle `boot.initrd.systemd.fido2.enable`
   for YubiKey LUKS unlock. Consumers must set
   `crypttabExtraOpts = [ "fido2-device=auto" ]` in their disko LUKS spec themselves.
 - `sys.nix.trustedUsers` — users added to `nix.settings.trusted-users` (plus root).

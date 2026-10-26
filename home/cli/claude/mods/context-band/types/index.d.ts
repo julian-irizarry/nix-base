@@ -1,7 +1,7 @@
-export type Fill = { tokens: number; window: number }
+export type Fill = { tokens: number; window: number };
 
-declare module 'claude-code' {
+declare module "claude-code" {
   interface PluginState {
-    'context-band': { fill: Fill | null }
+    "context-band": { fill: Fill | null };
   }
 }

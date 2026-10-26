@@ -68,6 +68,10 @@
       -- arrives as ctrl+t and ctrl+1 as plain 1, so herdr can't bind them.
       config.enable_kitty_keyboard = true
 
+      -- macOS only: left option sends Meta (readline alt+b/alt+f) instead of
+      -- composing characters. Right option still composes. No-op on Linux.
+      config.send_composed_key_when_left_alt_is_pressed = false
+
       config.keys = keys.keymaps()
       config.key_tables = keys.key_tables()
 

@@ -12,6 +12,17 @@ lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
   # mkHome only imports the provider module on Linux).
   my.platform.nixGL.enable = false;
 
+  programs.git.ignores = [ ".DS_Store" ];
+
+  targets.darwin.defaults.NSGlobalDomain = {
+    KeyRepeat = 2;
+    InitialKeyRepeat = 15;
+    ApplePressAndHoldEnabled = false;
+    NSAutomaticQuoteSubstitutionEnabled = false;
+    NSAutomaticDashSubstitutionEnabled = false;
+    NSAutomaticSpellingCorrectionEnabled = false;
+  };
+
   home.file.".ssh/config.d/identity-agent" = lib.mkIf config.my.ssh.onePassword.enable {
     text = ''
       IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"

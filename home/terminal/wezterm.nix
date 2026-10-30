@@ -36,7 +36,7 @@
 
       config.term = 'wezterm'
 
-      config.font = wezterm.font '${config.my.font.name}'
+      config.font = wezterm.font('${config.my.font.name}', { weight = 'Medium' })
       config.font_size = ${toString config.my.font.size}
 
       config.colors = rose_pine_black

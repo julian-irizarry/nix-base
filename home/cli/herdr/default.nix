@@ -65,6 +65,9 @@ let
       # entries. Replaces the hardcoded tab, border, popup, navigator and
       # accent-pill styling; only the process icon colors stay hardcoded.
       ./theme-elements.patch
+      # `[ui.sprites]` and the `sprite:<name>` agent row token: multi-cell
+      # per-state animations on the spinner clock, each with its own interval.
+      ./sprites.patch
     ];
     # The full suite passes outside the sandbox except three tests that fail on
     # stock v0.9.5 here too; skipped to keep rebuilds fast.

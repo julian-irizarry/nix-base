@@ -1,0 +1,993 @@
+diff --git a/docs/next/website/src/content/docs/configuration.mdx b/docs/next/website/src/content/docs/configuration.mdx
+index 43689f44..1cb77a6e 100644
+--- a/docs/next/website/src/content/docs/configuration.mdx
++++ b/docs/next/website/src/content/docs/configuration.mdx
+@@ -594,6 +594,26 @@ Keys are `blocked`, `working`, `done`, `idle`, and `unknown`. Each entry is a ta
+ 
+ Spinners animate in the client only while one is visible. Every spinner steps together each 100 ms, and only the changed cells are repainted. `herdr config check` reports an entry with a missing or wrong-width icon, an empty or wrong-width frame, or a malformed color, and that state falls back to its preset glyph and theme color. Overrides apply wherever status icons appear, including the mobile layout. Agent toasts use them too: a needs-attention toast shows the `blocked` icon and a finished toast the `done` icon, while unset states keep the stock toast dot. Overrides color the icon only; style the `state_text` sidebar token separately.
+ 
++Sprites are small animations for Agent rows, drawn by a `sprite:<name>` token. Define each under `[ui.sprites.<name>]` with frames per state:
++
++```toml
++[ui.sprites.crab]
++interval_ms = 160
++color = "#ff9da4"
++working = ["⡳⡽⢯⢞⠀⠀", "⠘⡮⣿⢵⠃⠀", "⠀⡳⡽⢯⢞⠀"]
++idle = ["⠀⡳⡽⢯⢞⠀"]
++
++[ui.sidebar.agents.rows_by_agent]
++claude = [["sprite:crab", "agent"], ["state_text"]]
++```
++
++- `blocked`, `working`, `done`, `idle`, `unknown` — the frames for that state. Every frame of a sprite, across all states, has the same width of 1–12 cells, so the row doesn't shift as it animates. A state without frames uses `idle`'s; with neither, the token leaves the row.
++- `interval_ms` — milliseconds per frame, 50–5000. Defaults to 250.
++- `color` — `#RGB` or `#RRGGBB`. Defaults to the row's status icon color, so a sprite follows the state colors.
++- `colors` — per-state colors that override `color`, such as `colors = { blocked = "#f55", done = "#a6e3a1" }`. A token `fg` overrides all of them.
++
++Braille characters make good pixel art: each cell is a 2×4 dot grid. Sprites share the spinner clock: they animate only while visible, a one-frame state never repaints, and only changed cells are redrawn. `sprite:` tokens take fixed styles but no `rules`, and work in Agent rows and `rows_by_agent`, not Space rows. `herdr config check` reports an invalid name, an empty or wrong-width frame, frames of different widths, an out-of-range interval, or a malformed `color` or `colors` entry, and that sprite's tokens are left out.
++
+ ### Sidebar row layouts
+ 
+ The expanded desktop sidebar renders each inner array in `rows` as one line. These are the complete default layouts:
+@@ -626,6 +646,7 @@ Agent rows accept these built-in tokens:
+ - `terminal_title` — latest OSC 0/2 terminal title after safety normalization.
+ - `terminal_title_stripped` — the terminal title with one recognized leading activity or spinner glyph and its following whitespace removed.
+ - `$name` — custom pane metadata named `name`.
++- `sprite:<name>` — the `[ui.sprites]` animation named `name`, for the agent's state.
+ 
+ Space rows accept these built-in tokens:
+ 
+diff --git a/docs/next/website/src/data/config-reference.json b/docs/next/website/src/data/config-reference.json
+index 1118b80b..b52d7d1b 100644
+--- a/docs/next/website/src/data/config-reference.json
++++ b/docs/next/website/src/data/config-reference.json
+@@ -1236,6 +1236,12 @@
+           "default": "theme state color",
+           "description": "Icon color for unknown agents as #RGB or #RRGGBB."
+         },
++        {
++          "key": "ui.sprites",
++          "type": "table of sprites",
++          "default": "{}",
++          "description": "Named animations drawn by sprite:<name> agent row tokens. Each [ui.sprites.<name>] lists per-state frames (blocked, working, done, idle, unknown) of one shared width, 1-12 cells; a state without frames uses idle's. interval_ms (50-5000, default 250) sets the frame time color (#RGB or #RRGGBB) the color, defaulting to the row's status icon color; colors overrides it per state."
++        },
+         {
+           "key": "ui.sidebar.agents.row_gap",
+           "type": "integer",
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index 6355e731..e3288ba7 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -906,6 +906,7 @@ impl App {
+                     &config.ui.window_title,
+                 ));
+                 diagnostics.extend(config.ui.status_icons.diagnostics());
++                diagnostics.extend(config.ui.sprites.diagnostics());
+                 diagnostics.extend(config.ui.tab_bar.diagnostics());
+ 
+                 self.loaded_host_cursor = config.ui.host_cursor;
+diff --git a/src/client/shell.rs b/src/client/shell.rs
+index e7ee4797..3a340ee8 100644
+--- a/src/client/shell.rs
++++ b/src/client/shell.rs
+@@ -260,7 +260,78 @@ impl StatusIcons {
+     }
+ }
+ 
++/// Local patch: `[ui.sprites]` resolved once per config load. Sprites with a
++/// problem are dropped here (config check reports them).
++#[derive(Default)]
++pub(super) struct Sprites(std::collections::HashMap<String, Sprite>);
++
++pub(super) struct Sprite {
++    interval_ms: u64,
++    /// Per state, indexed like `StatusIcons::slot`, already falling back to `color`.
++    colors: [Option<ratatui::style::Color>; 5],
++    /// Per state, indexed like `StatusIcons::slot`.
++    frames: [Option<Vec<String>>; 5],
++}
++
++impl Sprites {
++    pub(super) fn from_config(config: &crate::config::SpritesConfig) -> Self {
++        Self(
++            config
++                .0
++                .iter()
++                .filter(|(_, sprite)| sprite.problem().is_none())
++                .map(|(name, sprite)| {
++                    let parse = |color: Option<&String>| {
++                        color
++                            .and_then(|color| crate::config::SidebarTokenColor::parse(color))
++                            .map(crate::config::SidebarTokenColor::ratatui)
++                    };
++                    let color = parse(sprite.color.as_ref());
++                    let colors = sprite
++                        .colors
++                        .states()
++                        .map(|(_, state)| parse(state).or(color));
++                    let frames = [
++                        sprite.blocked.clone(),
++                        sprite.working.clone(),
++                        sprite.done.clone(),
++                        sprite.idle.clone(),
++                        sprite.unknown.clone(),
++                    ];
++                    let interval_ms = sprite.interval_ms();
++                    (
++                        name.clone(),
++                        Sprite {
++                            interval_ms,
++                            colors,
++                            frames,
++                        },
++                    )
++                })
++                .collect(),
++        )
++    }
++}
++
+ impl ClientShellConfig {
++    /// Local patch: this compose's frame of sprite `name` for an agent in
++    /// `status`, with its color. A state without frames uses `idle`'s; `None`
++    /// (no such sprite, or neither set) leaves the token out of the row.
++    pub(super) fn sprite_frame(
++        &self,
++        name: &str,
++        status: crate::api::schema::AgentStatus,
++    ) -> Option<(&str, ratatui::style::Color)> {
++        let sprite = self.sprites.0.get(name)?;
++        let idle = StatusIcons::slot(crate::api::schema::AgentStatus::Idle);
++        let frames = sprite.frames[StatusIcons::slot(status)]
++            .as_ref()
++            .or(sprite.frames[idle].as_ref())?;
++        let color = sprite.colors[StatusIcons::slot(status)]
++            .unwrap_or_else(|| self.status_icon_color(status));
++        Some((spinner::draw_every(frames, sprite.interval_ms), color))
++    }
++
+     /// Local patch: whether `[ui.status_icons]` sets this state.
+     fn has_status_icon_override(&self, status: crate::api::schema::AgentStatus) -> bool {
+         self.status_icons.get(status).is_some()
+@@ -300,53 +371,72 @@ impl ClientShellConfig {
+     }
+ }
+ 
+-/// Local patch: spinner for `[ui.status_icons]` entries with `type = "spinner"`.
+-/// Animated by the client alone: each compose pins one frame index from the
+-/// clock, and the client loop repaints only while the last composed frame drew
+-/// a spinner and the clock has moved on. Nothing crosses the server protocol,
+-/// and the blit encoder diffs frames, so a tick writes just the changed icon
+-/// cells. Process-wide atomics rather than thread-locals because the client
+-/// loop is an async task that may hop threads.
++/// Local patch: the animation clock for `[ui.status_icons]` spinners and
++/// `[ui.sprites]`. Animated by the client alone: each compose pins the time,
++/// every animation drawn notes when its next frame is due, and the client loop
++/// repaints only once that moment passes. Nothing crosses the server protocol,
++/// and the blit encoder diffs frames, so a tick writes just the changed cells.
++/// Process-wide atomics rather than thread-locals because the client loop is
++/// an async task that may hop threads.
+ pub(crate) mod spinner {
+-    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
++    use std::sync::atomic::{AtomicU64, Ordering};
+     use std::sync::OnceLock;
+     use std::time::{Duration, Instant};
+ 
+-    const INTERVAL: Duration = Duration::from_millis(100);
++    const SPINNER_INTERVAL_MS: u64 = 100;
++    const NOTHING_DUE: u64 = u64::MAX;
+ 
+     static EPOCH: OnceLock<Instant> = OnceLock::new();
+-    static FRAME: AtomicU64 = AtomicU64::new(0);
+-    static DRAWN: AtomicBool = AtomicBool::new(false);
++    /// The current compose's time, in milliseconds since `EPOCH`.
++    static NOW_MS: AtomicU64 = AtomicU64::new(0);
++    /// When the soonest animation drawn this compose changes frame.
++    static NEXT_MS: AtomicU64 = AtomicU64::new(NOTHING_DUE);
+ 
+-    fn index_at(now: Instant) -> u64 {
++    fn ms_at(now: Instant) -> u64 {
+         let epoch = *EPOCH.get_or_init(|| now);
+-        (now.saturating_duration_since(epoch).as_millis() / INTERVAL.as_millis()) as u64
++        now.saturating_duration_since(epoch).as_millis() as u64
+     }
+ 
+-    /// Start a compose. Every spinner drawn until the next call shows this frame.
++    /// Start a compose. Every animation drawn until the next call shows the
++    /// frame for this moment.
+     pub(crate) fn begin(now: Instant) {
+-        FRAME.store(index_at(now), Ordering::Relaxed);
+-        DRAWN.store(false, Ordering::Relaxed);
++        NOW_MS.store(ms_at(now), Ordering::Relaxed);
++        NEXT_MS.store(NOTHING_DUE, Ordering::Relaxed);
+     }
+ 
+     pub(super) fn draw(frames: &[String]) -> &str {
+-        DRAWN.store(true, Ordering::Relaxed);
+-        &frames[(FRAME.load(Ordering::Relaxed) % frames.len() as u64) as usize]
++        draw_every(frames, SPINNER_INTERVAL_MS)
++    }
++
++    /// This compose's frame of an animation stepping every `interval_ms`. All
++    /// animations share one epoch, so equal intervals step together.
++    pub(super) fn draw_every(frames: &[String], interval_ms: u64) -> &str {
++        let (index, next) = step_at(NOW_MS.load(Ordering::Relaxed), frames.len(), interval_ms);
++        if let Some(next) = next {
++            NEXT_MS.fetch_min(next, Ordering::Relaxed);
++        }
++        &frames[index]
+     }
+ 
+-    /// Whether the last compose drew a spinner that is now showing a stale frame.
++    /// The frame index at `now_ms`, and when the next frame starts (`None`
++    /// for a single frame, which never needs a repaint).
++    pub(super) fn step_at(now_ms: u64, len: usize, interval_ms: u64) -> (usize, Option<u64>) {
++        let interval_ms = interval_ms.max(1);
++        let step = now_ms / interval_ms;
++        let next = (len > 1).then(|| (step + 1) * interval_ms);
++        ((step % len.max(1) as u64) as usize, next)
++    }
++
++    /// Whether an animation in the last compose is now showing a stale frame.
+     pub(crate) fn due(now: Instant) -> bool {
+-        DRAWN.load(Ordering::Relaxed) && index_at(now) != FRAME.load(Ordering::Relaxed)
++        let next = NEXT_MS.load(Ordering::Relaxed);
++        next != NOTHING_DUE && ms_at(now) >= next
+     }
+ 
+-    /// Time until the next frame while a spinner is on screen.
++    /// Time until the next frame while an animation is on screen.
+     pub(crate) fn next_frame_in(now: Instant) -> Option<Duration> {
+-        if !DRAWN.load(Ordering::Relaxed) {
+-            return None;
+-        }
+-        let next = (FRAME.load(Ordering::Relaxed) + 1) as u32;
+-        let epoch = *EPOCH.get_or_init(|| now);
+-        Some((epoch + INTERVAL * next).saturating_duration_since(now))
++        let next = NEXT_MS.load(Ordering::Relaxed);
++        (next != NOTHING_DUE).then(|| Duration::from_millis(next.saturating_sub(ms_at(now))))
+     }
+ }
+ 
+diff --git a/src/client/shell/agent_sidebar.rs b/src/client/shell/agent_sidebar.rs
+index 1ae267a6..9e4aab82 100644
+--- a/src/client/shell/agent_sidebar.rs
++++ b/src/client/shell/agent_sidebar.rs
+@@ -342,6 +342,28 @@ pub(super) fn render_agent_row(
+     } else {
+         row.rows.clone()
+     };
++    // Local patch: swap each `sprite:` token for this compose's frame, or drop
++    // it. The row itself stays, since entry heights come from the row count.
++    let rows = rows
++        .into_iter()
++        .map(|tokens| {
++            tokens
++                .into_iter()
++                .filter_map(|token| match &token.kind {
++                    crate::ui::ResolvedTokenKind::Sprite(name) => config
++                        .sprite_frame(name, row.status)
++                        .map(|(text, color)| crate::ui::ResolvedToken {
++                            kind: crate::ui::ResolvedTokenKind::SpriteFrame {
++                                text: text.to_string(),
++                                color,
++                            },
++                            style: token.style,
++                        }),
++                    _ => Some(token),
++                })
++                .collect::<Vec<_>>()
++        })
++        .collect::<Vec<_>>();
+     for (index, tokens) in rows.iter().take(rect.height as usize).enumerate() {
+         let indent = if index == 0 { 1 } else { 3 };
+         let mut spans = vec![ratatui::text::Span::raw(" ".repeat(indent))];
+diff --git a/src/client/shell/config.rs b/src/client/shell/config.rs
+index 1390ce45..c743ab5f 100644
+--- a/src/client/shell/config.rs
++++ b/src/client/shell/config.rs
+@@ -129,6 +129,7 @@ impl ClientShellConfig {
+             agent_panel_sort: config.ui.agent_panel_sort,
+             status_indicators: config.ui.status_indicators,
+             status_icons: super::StatusIcons::from_config(&config.ui.status_icons),
++            sprites: super::Sprites::from_config(&config.ui.sprites),
+             sound_enabled: config.ui.sound.enabled,
+             toast_delivery: config.ui.toast.delivery,
+             toast_delay_seconds: config.ui.toast.delay_seconds,
+@@ -378,6 +379,7 @@ impl ClientShellConfig {
+                 self.agent_panel_sort = ui.agent_panel_sort;
+                 self.status_indicators = ui.status_indicators;
+                 self.status_icons = super::StatusIcons::from_config(&ui.status_icons);
++                self.sprites = super::Sprites::from_config(&ui.sprites);
+                 self.sound_enabled = ui.sound.enabled;
+                 self.toast_delivery = ui.toast.delivery;
+                 self.toast_delay_seconds = ui.toast.delay_seconds;
+diff --git a/src/client/shell/state.rs b/src/client/shell/state.rs
+index dbfd6208..a66363c0 100644
+--- a/src/client/shell/state.rs
++++ b/src/client/shell/state.rs
+@@ -28,6 +28,7 @@ pub(crate) struct ClientShellConfig {
+     pub(super) agent_panel_sort: crate::config::AgentPanelSortConfig,
+     pub(super) status_indicators: crate::config::StatusIndicatorStyle,
+     pub(super) status_icons: super::StatusIcons,
++    pub(super) sprites: super::Sprites,
+     pub(super) sound_enabled: bool,
+     pub(super) toast_delivery: crate::config::ToastDelivery,
+     pub(super) toast_delay_seconds: u64,
+diff --git a/src/client/shell/tests/agents_worktrees_notifications.rs b/src/client/shell/tests/agents_worktrees_notifications.rs
+index df09f464..d29adec8 100644
+--- a/src/client/shell/tests/agents_worktrees_notifications.rs
++++ b/src/client/shell/tests/agents_worktrees_notifications.rs
+@@ -1682,3 +1682,151 @@ fn semantic_notifications_use_client_policy_and_stable_navigation_targets() {
+     assert!(state.visible_notification.is_none());
+     assert_eq!(state.pending_notifications.len(), 1);
+ }
++
++fn sprites(toml: &str) -> crate::config::SpritesConfig {
++    toml::from_str(toml).expect("sprites toml")
++}
++
++#[test]
++fn sprite_frames_step_on_their_interval_and_never_repaint_a_still() {
++    use super::spinner::step_at;
++    assert_eq!(step_at(0, 3, 200), (0, Some(200)));
++    assert_eq!(step_at(399, 3, 200), (1, Some(400)));
++    assert_eq!(
++        step_at(650, 3, 200),
++        (0, Some(800)),
++        "wraps after the last frame"
++    );
++    assert_eq!(
++        step_at(5_000, 1, 200),
++        (0, None),
++        "a still frame schedules nothing"
++    );
++}
++
++#[test]
++fn sprite_frame_falls_back_to_idle_and_colors_by_state() {
++    use crate::api::schema::AgentStatus;
++    let mut config = Config::default();
++    config.ui.sprites = sprites(
++        r##"
++[crab]
++working = ["⣿⣀", "⣀⣿"]
++idle = ["⠶⠶"]
++
++[robot]
++color = "#ff0000"
++colors = { blocked = "#00f" }
++done = ["⣤⣤"]
++blocked = ["⣀⣀"]
++
++[broken]
++working = ["⣿", "⣀⣀"]
++"##,
++    );
++    let shell = ClientShellConfig::from_config(&config);
++
++    let (frame, color) = shell.sprite_frame("crab", AgentStatus::Working).unwrap();
++    assert!(["⣿⣀", "⣀⣿"].contains(&frame));
++    assert_eq!(color, shell.status_icon_color(AgentStatus::Working));
++    assert_eq!(
++        shell
++            .sprite_frame("crab", AgentStatus::Blocked)
++            .map(|(f, _)| f),
++        Some("⠶⠶"),
++        "a state without frames uses idle's"
++    );
++    let red = ratatui::style::Color::Rgb(0xff, 0, 0);
++    assert_eq!(
++        shell.sprite_frame("robot", AgentStatus::Done),
++        Some(("⣤⣤", red))
++    );
++    let blue = ratatui::style::Color::Rgb(0, 0, 0xff);
++    assert_eq!(
++        shell.sprite_frame("robot", AgentStatus::Blocked),
++        Some(("⣀⣀", blue)),
++        "colors.<state> beats color"
++    );
++    assert_eq!(
++        shell.sprite_frame("robot", AgentStatus::Working),
++        None,
++        "no idle"
++    );
++    assert_eq!(
++        shell.sprite_frame("broken", AgentStatus::Working),
++        None,
++        "mixed widths"
++    );
++    assert_eq!(shell.sprite_frame("missing", AgentStatus::Working), None);
++}
++
++#[test]
++fn agent_rows_draw_sprites_per_agent_and_drop_unknown_ones() {
++    let mut projected = snapshot();
++    let mut second_pane = projected.panes[0].clone();
++    second_pane.pane_id = "pane_2".into();
++    second_pane.focused = false;
++    projected.panes.push(second_pane);
++    let agent = |pane: &str, name: &str, kind: &str, status| ClientShellAgent {
++        pane_id: pane.into(),
++        workspace_id: "ws_1".into(),
++        tab_id: "tab_1".into(),
++        name: Some(name.into()),
++        display_agent: None,
++        agent: Some(kind.into()),
++        title: None,
++        terminal_title: None,
++        terminal_title_stripped: None,
++        agent_status: status,
++        state_change_seq: 1,
++        state_labels: Vec::new(),
++        tokens: Vec::new(),
++        focused: false,
++    };
++    projected.agents = vec![
++        agent("pane_1", "crabby", "claude", AgentStatus::Idle),
++        agent("pane_2", "nobot", "pi", AgentStatus::Idle),
++    ];
++    let mut config = Config::default();
++    config.ui.sprites = sprites(
++        r##"
++[crab]
++idle = ["⢾⡷"]
++"##,
++    );
++    config.ui.sidebar.agents.rows = vec![vec![
++        crate::config::AgentSidebarToken::Sprite("robot".into()),
++        crate::config::AgentSidebarToken::Agent,
++    ]];
++    config.ui.sidebar.agents.rows_by_agent.insert(
++        "claude".into(),
++        vec![vec![
++            crate::config::AgentSidebarToken::Sprite("crab".into()),
++            crate::config::AgentSidebarToken::Agent,
++        ]],
++    );
++    let mut state = ClientShellState::new(ClientShellConfig::from_config(&config));
++    state.set_snapshot(Box::new(projected));
++    state.set_pane_surface(surface());
++
++    let frame = state.compose(106, 30).expect("agent sidebar frame");
++    let lines = frame
++        .cells
++        .chunks(frame.width as usize)
++        .map(|row| {
++            row.iter()
++                .map(|cell| cell.symbol.as_str())
++                .collect::<String>()
++        })
++        .collect::<Vec<_>>();
++    let text = lines.join("\n");
++    assert!(text.contains("⢾⡷ crabby"), "claude gets the crab: {text}");
++    let nobot = lines
++        .iter()
++        .find(|line| line.contains("nobot"))
++        .expect("pi row");
++    assert!(
++        nobot.trim_start().starts_with("nobot"),
++        "an undefined sprite leaves the row with no gap: {nobot:?}"
++    );
++}
+diff --git a/src/config.rs b/src/config.rs
+index 807eb8f3..7643fbb0 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -25,10 +25,10 @@ pub use self::{
+     model::{
+         validated_sidebar_bounds, AgentPanelSortConfig, Config, ConfigReloadReport,
+         ConfigReloadStatus, HostCursorModeConfig, NewTerminalCwdConfig, PaneBordersConfig,
+-        ShellModeConfig, SidebarCollapsedModeConfig, StatusIconConfig, StatusIconKind,
+-        StatusIconsConfig, StatusIndicatorStyle, TabBarPositionConfig, ToastClipboardPosition,
+-        ToastConfig, ToastDelivery, ToastHerdrPosition, UpdateChannelConfig,
+-        DEFAULT_SPINNER_FRAMES, MAX_TOAST_DELAY_SECONDS,
++        ShellModeConfig, SidebarCollapsedModeConfig, SpritesConfig, StatusIconConfig,
++        StatusIconKind, StatusIconsConfig, StatusIndicatorStyle, TabBarPositionConfig,
++        ToastClipboardPosition, ToastConfig, ToastDelivery, ToastHerdrPosition,
++        UpdateChannelConfig, DEFAULT_SPINNER_FRAMES, MAX_TOAST_DELAY_SECONDS,
+     },
+     sidebar::{
+         AgentSidebarToken, AgentsSidebarConfig, SidebarConfig, SidebarTokenColor,
+@@ -127,6 +127,7 @@ impl Config {
+             .chain(self.ui.sound.diagnostics())
+             .chain(tab_bar_right_diagnostics(&self.ui.tab_bar_right))
+             .chain(self.ui.status_icons.diagnostics())
++            .chain(self.ui.sprites.diagnostics())
+             .chain(self.ui.tab_bar.diagnostics())
+             .chain(window_title_diagnostics(&self.ui.window_title))
+             .chain(self.invalid_sidebar_bounds_diagnostic())
+diff --git a/src/config/model.rs b/src/config/model.rs
+index 2233c494..f47feaf0 100644
+--- a/src/config/model.rs
++++ b/src/config/model.rs
+@@ -1,4 +1,7 @@
+-use std::{collections::BTreeSet, num::NonZeroUsize};
++use std::{
++    collections::{BTreeMap, BTreeSet},
++    num::NonZeroUsize,
++};
+ 
+ use crossterm::event::KeyModifiers;
+ use serde::{de, Deserialize, Deserializer, Serialize};
+@@ -218,6 +221,145 @@ impl StatusIconsConfig {
+     }
+ }
+ 
++/// Milliseconds per frame when a `[ui.sprites]` entry sets no `interval_ms`.
++pub const DEFAULT_SPRITE_INTERVAL_MS: u64 = 250;
++/// Allowed `interval_ms` range for `[ui.sprites]` entries.
++pub const SPRITE_INTERVAL_MS: std::ops::RangeInclusive<u64> = 50..=5000;
++/// Widest a sprite frame may be, in terminal cells.
++pub const MAX_SPRITE_WIDTH: usize = 12;
++
++/// Local patch: one `[ui.sprites.<name>]` animation, drawn by `sprite:<name>`
++/// agent row tokens. Each state lists frames of one shared width. A state
++/// without frames uses `idle`'s; with neither, the token leaves the row.
++#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(default)]
++pub struct SpriteConfig {
++    /// Milliseconds per frame. Unset uses `DEFAULT_SPRITE_INTERVAL_MS`.
++    pub interval_ms: Option<u64>,
++    /// `#RGB` or `#RRGGBB`. Unset uses the row's status icon color.
++    pub color: Option<String>,
++    /// Per-state colors that override `color`.
++    pub colors: SpriteColors,
++    pub blocked: Option<Vec<String>>,
++    pub working: Option<Vec<String>>,
++    pub done: Option<Vec<String>>,
++    pub idle: Option<Vec<String>>,
++    pub unknown: Option<Vec<String>>,
++}
++
++/// Local patch: `colors` in a `[ui.sprites]` entry, `#RGB` or `#RRGGBB` per state.
++#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(default)]
++pub struct SpriteColors {
++    pub blocked: Option<String>,
++    pub working: Option<String>,
++    pub done: Option<String>,
++    pub idle: Option<String>,
++    pub unknown: Option<String>,
++}
++
++impl SpriteColors {
++    pub fn states(&self) -> [(&'static str, Option<&String>); 5] {
++        [
++            ("blocked", self.blocked.as_ref()),
++            ("working", self.working.as_ref()),
++            ("done", self.done.as_ref()),
++            ("idle", self.idle.as_ref()),
++            ("unknown", self.unknown.as_ref()),
++        ]
++    }
++}
++
++impl SpriteConfig {
++    pub fn states(&self) -> [(&'static str, Option<&Vec<String>>); 5] {
++        [
++            ("blocked", self.blocked.as_ref()),
++            ("working", self.working.as_ref()),
++            ("done", self.done.as_ref()),
++            ("idle", self.idle.as_ref()),
++            ("unknown", self.unknown.as_ref()),
++        ]
++    }
++
++    pub fn interval_ms(&self) -> u64 {
++        self.interval_ms.unwrap_or(DEFAULT_SPRITE_INTERVAL_MS)
++    }
++
++    /// Why this sprite can't be drawn, if it can't.
++    pub fn problem(&self) -> Option<String> {
++        if !SPRITE_INTERVAL_MS.contains(&self.interval_ms()) {
++            return Some(format!(
++                "interval_ms must be {}-{}",
++                SPRITE_INTERVAL_MS.start(),
++                SPRITE_INTERVAL_MS.end()
++            ));
++        }
++        let invalid =
++            |color: &&str| crate::config::sidebar::SidebarTokenColor::parse(color).is_none();
++        if let Some(color) = self.color.as_deref().filter(invalid) {
++            return Some(format!("color {color:?} must be #RGB or #RRGGBB"));
++        }
++        for (state, color) in self.colors.states() {
++            if let Some(color) = color.map(String::as_str).filter(invalid) {
++                return Some(format!("colors.{state} {color:?} must be #RGB or #RRGGBB"));
++            }
++        }
++        let mut width: Option<(usize, &str)> = None;
++        let mut any = false;
++        for (state, frames) in self.states() {
++            let Some(frames) = frames else { continue };
++            any = true;
++            if frames.is_empty() {
++                return Some(format!("{state} frames must not be empty"));
++            }
++            for frame in frames {
++                let frame_width = unicode_width::UnicodeWidthStr::width(frame.as_str());
++                if frame.chars().any(char::is_control)
++                    || !(1..=MAX_SPRITE_WIDTH).contains(&frame_width)
++                {
++                    return Some(format!(
++                        "{state} frame {frame:?} must be 1-{MAX_SPRITE_WIDTH} cells wide"
++                    ));
++                }
++                match width {
++                    None => width = Some((frame_width, state)),
++                    Some((first, first_state)) if first != frame_width => {
++                        return Some(format!(
++                            "every frame must be one width: {first_state} frames are {first} \
++                             wide, {state} frame {frame:?} is {frame_width}"
++                        ))
++                    }
++                    Some(_) => {}
++                }
++            }
++        }
++        (!any).then(|| "needs frames for at least one state".into())
++    }
++}
++
++/// Local patch: `[ui.sprites]`, named animations for `sprite:<name>` tokens.
++#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
++#[serde(transparent)]
++pub struct SpritesConfig(pub BTreeMap<String, SpriteConfig>);
++
++impl SpritesConfig {
++    pub fn diagnostics(&self) -> Vec<String> {
++        self.0
++            .iter()
++            .filter_map(|(name, sprite)| {
++                let problem = if crate::config::sidebar::is_custom_token_name(name) {
++                    sprite.problem()?
++                } else {
++                    "names use letters, digits, `_` or `-`, up to 32".into()
++                };
++                Some(format!(
++                    "ui.sprites.{name}: {problem}; sprite:{name} tokens are left out"
++                ))
++            })
++            .collect()
++    }
++}
++
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+ #[serde(rename_all = "lowercase")]
+ pub enum HostCursorModeConfig {
+@@ -1102,6 +1244,8 @@ pub struct UiConfig {
+     pub status_indicators: StatusIndicatorStyle,
+     /// Per-state icon overrides on top of `status_indicators`.
+     pub status_icons: StatusIconsConfig,
++    /// Named animations for `sprite:<name>` agent row tokens.
++    pub sprites: SpritesConfig,
+     /// Expanded sidebar row composition.
+     pub sidebar: SidebarConfig,
+     /// Accent color for highlights, borders, and navigation UI.
+@@ -1334,6 +1478,7 @@ impl Default for UiConfig {
+             _legacy_agent_panel_scope: None,
+             status_indicators: StatusIndicatorStyle::Dots,
+             status_icons: StatusIconsConfig::default(),
++            sprites: SpritesConfig::default(),
+             sidebar: SidebarConfig::default(),
+             accent: "cyan".into(),
+             toast: ToastConfig::default(),
+@@ -1442,6 +1587,73 @@ impl Default for AdvancedConfig {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn sprites_parse_and_report_each_problem() {
++        let config: Config = toml::from_str(
++            r##"
++[ui.sprites.crab]
++interval_ms = 300
++color = "#f80"
++working = ["⢾⡷", "⡾⢷"]
++idle = ["⠶⠶"]
++
++[ui.sprites.wide]
++working = ["⣿", "⣿⣿"]
++
++[ui.sprites.slow]
++interval_ms = 9000
++idle = ["⣿"]
++
++[ui.sprites.blank]
++interval_ms = 100
++
++[ui.sprites."bad name"]
++idle = ["⣿"]
++"##,
++        )
++        .unwrap();
++        let crab = &config.ui.sprites.0["crab"];
++        assert_eq!(crab.interval_ms(), 300);
++        assert_eq!(crab.working.as_ref().map(Vec::len), Some(2));
++        assert_eq!(crab.problem(), None);
++        let diagnostics = config.ui.sprites.diagnostics().join("\n");
++        for expected in [
++            "ui.sprites.wide: every frame must be one width",
++            "ui.sprites.slow: interval_ms must be 50-5000",
++            "ui.sprites.blank: needs frames for at least one state",
++            "ui.sprites.bad name: names use letters",
++        ] {
++            assert!(diagnostics.contains(expected), "{expected}: {diagnostics}");
++        }
++        assert!(!diagnostics.contains("ui.sprites.crab"), "{diagnostics}");
++    }
++
++    #[test]
++    fn sprite_frames_reject_empty_wide_and_control_frames() {
++        let with = |frames: &[&str]| SpriteConfig {
++            idle: Some(frames.iter().map(|frame| frame.to_string()).collect()),
++            ..Default::default()
++        };
++        assert_eq!(
++            with(&[]).problem().unwrap(),
++            "idle frames must not be empty"
++        );
++        assert!(with(&[""]).problem().unwrap().contains("1-12 cells"));
++        assert!(with(&["a\tb"]).problem().unwrap().contains("1-12 cells"));
++        assert!(with(&["⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿"])
++            .problem()
++            .unwrap()
++            .contains("1-12 cells"));
++        let mut colored = with(&["⣿"]);
++        colored.color = Some("red".into());
++        assert!(colored.problem().unwrap().contains("#RGB"));
++        let mut per_state = with(&["⣿"]);
++        per_state.colors.blocked = Some("#ff00".into());
++        assert!(per_state.problem().unwrap().starts_with("colors.blocked"));
++        per_state.colors.blocked = Some("#f00".into());
++        assert_eq!(per_state.problem(), None);
++    }
++
+     #[test]
+     fn update_config_defaults_and_parses() {
+         let default_config = Config::default();
+diff --git a/src/config/sidebar.rs b/src/config/sidebar.rs
+index c609981a..127853ae 100644
+--- a/src/config/sidebar.rs
++++ b/src/config/sidebar.rs
+@@ -117,6 +117,8 @@ pub enum AgentSidebarToken {
+     TerminalTitle,
+     TerminalTitleStripped,
+     Custom(String),
++    /// Local patch: `sprite:<name>`, a `[ui.sprites]` animation.
++    Sprite(String),
+     Styled {
+         token: Box<AgentSidebarToken>,
+         style: SidebarTokenStyle,
+@@ -201,7 +203,8 @@ impl RawSidebarToken {
+                     return Err("sidebar tokens may contain at most 16 rules".into());
+                 }
+                 if !token.rules.is_empty()
+-                    && matches!(token.token.as_str(), "state_icon" | "git_status")
++                    && (matches!(token.token.as_str(), "state_icon" | "git_status")
++                        || token.token.starts_with("sprite:"))
+                 {
+                     return Err("sidebar rules require a text-valued token".into());
+                 }
+@@ -231,17 +234,21 @@ where
+             "unknown sidebar token `{value}`; custom tokens must start with `$`"
+         ));
+     };
+-    if name.is_empty()
+-        || name.len() > 32
+-        || !name
+-            .chars()
+-            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'))
+-    {
++    if !is_custom_token_name(name) {
+         return Err(format!("invalid custom sidebar token `{value}`"));
+     }
+     Ok(T::from(name.to_string()))
+ }
+ 
++/// Names for `$name` tokens, and (local patch) `[ui.sprites]` entries.
++pub(crate) fn is_custom_token_name(name: &str) -> bool {
++    !name.is_empty()
++        && name.len() <= 32
++        && name
++            .chars()
++            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'))
++}
++
+ fn serialize_styled_token<S>(
+     name: String,
+     style: SidebarTokenStyle,
+@@ -281,6 +288,7 @@ fn agent_token_name(token: &AgentSidebarToken) -> String {
+         AgentSidebarToken::TerminalTitle => "terminal_title".into(),
+         AgentSidebarToken::TerminalTitleStripped => "terminal_title_stripped".into(),
+         AgentSidebarToken::Custom(name) => format!("${name}"),
++        AgentSidebarToken::Sprite(name) => format!("sprite:{name}"),
+         AgentSidebarToken::Styled { token, .. } => agent_token_name(token),
+     }
+ }
+@@ -327,20 +335,24 @@ impl<'de> Deserialize<'de> for AgentSidebarToken {
+         let (value, style, rules) = RawSidebarToken::deserialize(deserializer)?
+             .parts()
+             .map_err(serde::de::Error::custom)?;
+-        let token = parse_sidebar_token(
+-            value,
+-            &[
+-                ("state_icon", Self::StateIcon),
+-                ("state_text", Self::StateText),
+-                ("machine", Self::Machine),
+-                ("workspace", Self::Workspace),
+-                ("tab", Self::Tab),
+-                ("pane", Self::Pane),
+-                ("agent", Self::Agent),
+-                ("terminal_title", Self::TerminalTitle),
+-                ("terminal_title_stripped", Self::TerminalTitleStripped),
+-            ],
+-        )
++        let token = match value.strip_prefix("sprite:") {
++            Some(name) if is_custom_token_name(name) => Ok(Self::Sprite(name.to_string())),
++            Some(_) => Err(format!("invalid sprite token `{value}`")),
++            None => parse_sidebar_token(
++                value,
++                &[
++                    ("state_icon", Self::StateIcon),
++                    ("state_text", Self::StateText),
++                    ("machine", Self::Machine),
++                    ("workspace", Self::Workspace),
++                    ("tab", Self::Tab),
++                    ("pane", Self::Pane),
++                    ("agent", Self::Agent),
++                    ("terminal_title", Self::TerminalTitle),
++                    ("terminal_title_stripped", Self::TerminalTitleStripped),
++                ],
++            ),
++        }
+         .map_err(serde::de::Error::custom)?;
+         Ok(style.map_or(token.clone(), |style| Self::Styled {
+             token: Box::new(token),
+@@ -487,6 +499,42 @@ pub struct SidebarConfig {
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn sprite_tokens_parse_in_agent_rows_only_and_take_no_rules() {
++        let config: SidebarConfig = toml::from_str(
++            r##"
++[agents]
++rows = [["sprite:robot", "agent"]]
++
++[agents.rows_by_agent]
++claude = [[{ token = "sprite:crab", bold = true }, "agent"]]
++"##,
++        )
++        .unwrap();
++        assert_eq!(
++            config.agents.rows[0][0],
++            AgentSidebarToken::Sprite("robot".into())
++        );
++        let (token, style) = config.agents.rows_by_agent["claude"][0][0].parts();
++        assert_eq!(token, &AgentSidebarToken::Sprite("crab".into()));
++        assert_eq!(style.bold, Some(true));
++        let round_trip = toml::to_string(&config).unwrap();
++        assert!(round_trip.contains("sprite:robot"), "{round_trip}");
++
++        for bad in [
++            r#"[agents]
++rows = [["sprite:"]]"#,
++            r#"[agents]
++rows = [["sprite:bad name"]]"#,
++            r#"[agents]
++rows = [[{ token = "sprite:crab", rules = [{ equals = "x", hide = true }] }]]"#,
++            r#"[spaces]
++rows = [["sprite:crab"]]"#,
++        ] {
++            assert!(toml::from_str::<SidebarConfig>(bad).is_err(), "{bad}");
++        }
++    }
++
+     #[test]
+     fn defaults_match_the_compact_agent_and_existing_space_layouts() {
+         let config = SidebarConfig::default();
+diff --git a/src/main.rs b/src/main.rs
+index 27c96385..072af951 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -375,6 +375,14 @@ const DEFAULT_CONFIG: &str = r##"# herdr configuration
+ # working = { type = "spinner" }
+ # done = { type = "symbol", icon = "✓", color = "#a6e3a1" }
+ 
++# Named animations for `sprite:<name>` agent row tokens. Each state lists frames
++# of one shared width (1-12 cells); unset states use idle's. interval_ms is
++# 50-5000 (default 250); color defaults to the row's status icon color.
++# [ui.sprites.crab]
++# interval_ms = 160
++# working = ["⡳⡽⢯⢞⠀⠀", "⠀⡳⡽⢯⢞⠀", "⠀⠀⡳⡽⢯⢞"]
++# idle = ["⠀⡳⡽⢯⢞⠀"]
++
+ # Accent color for highlights, borders, and navigation UI.
+ # Accepts: hex (#89b4fa), named colors (cyan, blue, magenta), or rgb(r,g,b)
+ # accent = "cyan"
+diff --git a/src/ui/sidebar.rs b/src/ui/sidebar.rs
+index 21769bc0..b9acb1e8 100644
+--- a/src/ui/sidebar.rs
++++ b/src/ui/sidebar.rs
+@@ -117,6 +117,7 @@ pub(crate) fn resolved_token_spans(
+         .iter()
+         .map(|token| match &token.kind {
+             ResolvedTokenKind::StateIcon => display_width(state_icon.0),
++            ResolvedTokenKind::SpriteFrame { text, .. } => display_width(text),
+             ResolvedTokenKind::GitStatus { ahead, behind } => {
+                 usize::from(*ahead > 0) * display_width(&format!("↑{ahead}"))
+                     + usize::from(*behind > 0) * display_width(&format!("↓{behind}"))
+@@ -269,6 +270,12 @@ pub(crate) fn resolved_token_spans(
+                     apply_token_style(custom_style, token.style),
+                 ));
+             }
++            ResolvedTokenKind::SpriteFrame { text, color } => spans.push(Span::styled(
++                text.clone(),
++                apply_token_style(Style::default().fg(*color), token.style),
++            )),
++            // The client swaps these for a frame or drops them before drawing.
++            ResolvedTokenKind::Sprite(_) => {}
+         }
+     }
+     spans
+diff --git a/src/ui/sidebar/tokens.rs b/src/ui/sidebar/tokens.rs
+index 2560661e..6f279f4c 100644
+--- a/src/ui/sidebar/tokens.rs
++++ b/src/ui/sidebar/tokens.rs
+@@ -20,8 +20,18 @@ pub(crate) enum ResolvedTokenKind {
+     Agent(String),
+     TerminalTitle(String),
+     Branch(String),
+-    GitStatus { ahead: usize, behind: usize },
++    GitStatus {
++        ahead: usize,
++        behind: usize,
++    },
+     Custom(String),
++    /// Local patch: a `sprite:<name>` token, before the client picks its frame.
++    Sprite(String),
++    /// Local patch: the sprite frame the client drew for this compose.
++    SpriteFrame {
++        text: String,
++        color: ratatui::style::Color,
++    },
+ }
+ 
+ impl ResolvedTokenKind {
+@@ -36,7 +46,10 @@ impl ResolvedTokenKind {
+             | Self::TerminalTitle(value)
+             | Self::Branch(value)
+             | Self::Custom(value) => Some(value),
+-            Self::StateIcon | Self::GitStatus { .. } => None,
++            Self::StateIcon
++            | Self::GitStatus { .. }
++            | Self::Sprite(_)
++            | Self::SpriteFrame { .. } => None,
+         }
+     }
+ }
+@@ -108,6 +121,9 @@ pub(crate) fn agent_rows(
+                             .get(name)
+                             .cloned()
+                             .map(ResolvedTokenKind::Custom),
++                        AgentSidebarToken::Sprite(name) => {
++                            Some(ResolvedTokenKind::Sprite(name.clone()))
++                        }
+                         AgentSidebarToken::Styled { .. } => None,
+                     }?;
+                     let style = kind
+@@ -178,8 +194,10 @@ pub(crate) fn space_rows(
+ }
+ 
+ pub(crate) fn separator(previous: &ResolvedToken, current: &ResolvedToken) -> &'static str {
+-    if matches!(previous.kind, ResolvedTokenKind::StateIcon)
+-        || matches!(current.kind, ResolvedTokenKind::GitStatus { .. })
++    if matches!(
++        previous.kind,
++        ResolvedTokenKind::StateIcon | ResolvedTokenKind::SpriteFrame { .. }
++    ) || matches!(current.kind, ResolvedTokenKind::GitStatus { .. })
+     {
+         " "
+     } else {

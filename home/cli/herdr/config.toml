@@ -10,7 +10,8 @@ next_tab = "ctrl+shift+l"
 switch_tab = ["prefix+1..9", "ctrl+1..9"]
 move_tab_previous = "ctrl+shift+comma"
 move_tab_next = "ctrl+shift+period"
-split_vertical = ["prefix+v", "ctrl+shift+enter"]
+# No prefix default, prefix+v is gitview below.
+split_vertical = "ctrl+shift+enter"
 split_horizontal = ["prefix+minus", "ctrl+shift+minus"]
 close_pane = ["prefix+x", "ctrl+shift+w"]
 zoom = ["prefix+z", "ctrl+shift+f"]
@@ -21,8 +22,8 @@ copy_mode = "prefix+["
 new_workspace = ["prefix+shift+n", "ctrl+shift+n"]
 close_workspace = ["prefix+shift+d", "ctrl+shift+x"]
 detach = "prefix+d"
-# Worktrees of the focused repo workspace. prefix+shift+g (the new_worktree
-# default) is gitview below. open_worktree only works from the main repo's
+# Worktrees of the focused repo workspace, on prefix+a instead of the
+# prefix+shift+g default. open_worktree only works from the main repo's
 # workspace and the prefix+/ picker covers it, so prefix+t is the orchestrator.
 new_worktree = "prefix+a"
 open_worktree = ""
@@ -65,13 +66,13 @@ description = "next workspace in jump list"
 
 # gitview: changed files + diff; Enter opens nvim, notes go to an agent pane.
 [[keys.command]]
-key = "prefix+g"
+key = "prefix+v"
 type = "plugin_action"
 command = "chmarax.gitview.toggle"
 description = "git view sidebar"
 
 [[keys.command]]
-key = "prefix+shift+g"
+key = "prefix+shift+v"
 type = "plugin_action"
 command = "chmarax.gitview.toggle-tab"
 description = "git view tab"

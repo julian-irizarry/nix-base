@@ -65,11 +65,11 @@ test("a code block is a card with its language and a copy icon that copies the c
   expect((await ui.find({ type: "Text", text: / bash / }))?.text).toBe(
     " bash ",
   );
-  expect(await ui.find({ type: "Markdown" })).toBeDefined();
-  expect((await ui.find({ type: "Code" }))?.props).toMatchObject({
-    source: "echo hi",
-    language: "bash",
-  });
+  const markdown = (await ui.findAll({ type: "Markdown" })).map(
+    (m) => m.props.text,
+  );
+  expect(markdown).toEqual(["Run this:", "```bash\necho hi\n```"]);
+  expect(await ui.find({ type: "Code" })).toBeUndefined();
   expect(await ui.findAll({ type: "Button" })).toHaveLength(1);
 
   await ui.press({ key: "copy-0" });

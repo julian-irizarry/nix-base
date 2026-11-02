@@ -12,6 +12,17 @@ const CACHE_MAX = 200;
 const trimBlankLines = (s: string) =>
   s.replace(/^(?:[ \t]*\n)+/, "").replace(/(?:\n[ \t]*)+$/, "");
 
+// Rendered through Markdown, not Code, so fences keep the reply's own highlighting.
+// The fence outgrows any backtick run inside the code so it can't close early.
+const fenced = (lang: string, code: string) => {
+  const longest = Math.max(
+    0,
+    ...(code.match(/`+/g) ?? []).map((r) => r.length),
+  );
+  const fence = "`".repeat(Math.max(3, longest + 1));
+  return `${fence}${lang}\n${code || " "}\n${fence}`;
+};
+
 // One pass over the lines. An unclosed fence (a reply still streaming) runs to the end.
 export const segmentsOf = (text: string): Segment[] => {
   const out: Segment[] = [];
@@ -89,7 +100,7 @@ export const register: Register = (on) => {
     const segments = cachedSegments(e.requestId, text);
     if (!segments.some((s) => s.kind === "code")) return next(e);
 
-    const { Box, Text, Markdown, Button, Code } = $.ui.resolve(e);
+    const { Box, Text, Markdown, Button } = $.ui.resolve(e);
     const copy = (code: string) => {
       void $.ui
         .copy({ text: code, surface: e.surface })
@@ -109,7 +120,7 @@ export const register: Register = (on) => {
             borderDimColor
             paddingX={1}
           >
-            <Code source={s.code || " "} language={s.lang || undefined} />
+            <Markdown text={fenced(s.lang, s.code)} />
           </Box>
           {s.lang ? (
             <Box position="absolute" top={0} left={2}>

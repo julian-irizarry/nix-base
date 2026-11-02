@@ -30,7 +30,11 @@ let
       done
     done
 
-    exec "$wezterm" start -- ${bin}/herdr
+    # Through an interactive login shell, not herdr directly: the first herdr
+    # client spawns the server and every plugin pane inherits its env, and the
+    # nix PATH only comes from /etc/zshrc (interactive). Without it gitview
+    # can't find nvim.
+    exec "$wezterm" start -- "''${SHELL:-/bin/zsh}" -lic "exec ${bin}/herdr"
   '';
 
   herdrApp = pkgs.runCommand "herdr-launcher" { nativeBuildInputs = [ pkgs.libicns ]; } ''

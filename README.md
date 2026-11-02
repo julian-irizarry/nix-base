@@ -172,7 +172,8 @@ Missing deps don't break noctalia — the affected widgets just show no data.
 The sessionizer is Linux-only: it ships as a vicinae extension built in the nix
 sandbox and dropped into `~/.local/share/vicinae/extensions/`. On macOS,
 home-manager installs a `Herdr.app` stub instead, which Raycast lists with the
-herdr icon and which runs `wezterm start -- herdr`.
+herdr icon and which runs herdr in wezterm through an interactive login shell,
+so the herdr server it may spawn gets the nix PATH.
 
 ## Development
 
